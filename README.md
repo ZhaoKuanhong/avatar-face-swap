@@ -15,8 +15,27 @@
 
 * **前端:** Vue.js
 * **后端:** Flask (Python)
-* **UI 库:** Element UI (用于部分组件，如图片选择)
 * **图像处理 (后端):** dlib, OpenCV (用于人脸识别和裁剪)
+
+## How to use
+
+1.使用`crop_faces.py`分割输入图片
+
+2.按以下模版组织活动目录
+```
+backend/
+└── event/
+    └── <event_id>/
+        ├── input.jpg
+        ├── faces_info.json
+        ├── cropped_faces/
+        │   ├── face_1.jpg
+        │   └── ...
+        └── upload/
+```
+## To do
+- [ ] 通过后端创建活动文件夹而无需手动创建
+- [ ] 更漂亮的UI
 
 ## 演示
 登录页面

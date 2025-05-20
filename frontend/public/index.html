@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广东工业大学Bang Dream同好会</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            color: #333;
+            line-height: 1.7;
+        }
+
+        /* 全屏图片样式 */
+        .splash-container {
+            width: 100%;
+            height: 100vh;
+            background-image: url('https://s3-ap-northeast-1.amazonaws.com/bang-dream-portal/68032dc3-25e3-469a-965f-534e833a14d5.jpg'); /* 替换为你的全屏图片URL */
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: transform 0.3s ease-out; /* 添加过渡效果，使上移更平滑 */
+        }
+
+        .splash-container.scrolled {
+            transform: translateY(-100vh); /* 向上移动全屏图片 */
+        }
+
+        .splash-container h1 {
+            font-size: 3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .splash-container p {
+            font-size: 1.5em;
+            font-weight: 400;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            max-width: 80%;
+            margin: 0 auto;
+        }
+
+        /* 滚动后显示的导航栏 */
+        nav {
+            background-color: transparent;
+            color: white;
+            padding: 12px 0;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1001;
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        nav.scrolled {
+            background-color: #C62828;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            margin: 0 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            font-size: 1.1em;
+        }
+
+        nav a:hover {
+            background-color: #D32F2F;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            padding: 30px;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            position: relative;
+            /* top: 100vh;  将其注释掉或者删除 */
+            z-index: 1;
+        }
+
+        h1, h2, h3 {
+            color: #E53935;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        h2 {
+            font-size: 1.8em;
+        }
+        h3 {
+            font-size: 1.4em;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .gallery img {
+            width: 240px;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .gallery img:hover {
+            transform: scale(1.04);
+        }
+        footer {
+            text-align: center;
+            padding: 25px 0;
+            background-color: #333;
+            color: white;
+            margin-top: 30px;
+            border-top: 1px solid #444;
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+            margin-left: 0;
+        }
+        ul li::before {
+            content: "•";
+            color: #E53935;
+            margin-right: 10px;
+        }
+        ul li {
+            margin-bottom: 12px;
+        }
+        .contact-info {
+            line-height: 2;
+            font-size: 1.1em;
+        }
+
+        /* 隐藏滚动条 */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <h1>广东工业大学Bang Dream同好会</h1>
+        <p>一起享受Bang Dream带来的音乐与感动！</p>
+    </div>
+
+    <nav>
+        <a href="#about">关于我们</a>
+        <a href="#activities">社团活动</a>
+        <a href="#gallery">社团相册</a>
+        <a href="#contact">加入我们</a>
+    </nav>
+
+    <div class="container">
+        <section id="about" class="section">
+            <h2>关于我们</h2>
+            <p>
+                广东工业大学Bang Dream同好会是由一群热爱《BanG Dream!》企划的广工大学子共同创立。我们致力于在校园内营造一个充满活力与热情的邦邦社群。
+            </p>
+            <p>
+                无论你是刚刚接触Bang Dream的新朋友，还是已经深入了解企划的资深粉丝，这里都有属于你的位置。我们相信，通过音乐、故事和共同的热爱，我们可以连接彼此，创造美好的回忆。
+            </p>
+        </section>
+
+        <section id="activities" class="section">
+            <h2>社团活动</h2>
+            <p>我们 регулярно 举办各类活动，旨在为大家带来丰富的社团体验：</p>
+            <ul>
+                <li><strong>线上交流会：</strong>分享游戏心得、讨论剧情发展、交流周边资讯，让大家在线上也能热烈互动。</li>
+                <li><strong>线下观影会：</strong>组织大家一起观看演唱会、动画，感受现场的震撼与感动。</li>
+                <li><strong>主题聚会：</strong>不定期举办主题咖啡厅打卡、卡拉OK等活动，让大家在轻松愉快的氛围中交流。</li>
+                <li><strong>游戏比赛：</strong>举办社内Bang Dream游戏比赛，切磋技艺，增进友谊。</li>
+                <li><strong>周边分享：</strong>组织社员分享和展示自己的Bang Dream周边收藏，交流心得。</li>
+            </ul>
+        </section>
+
+        <section id="gallery" class="section">
+            <h2>社团相册</h2>
+            <div class="gallery">
+                <img src="https://via.placeholder.com/240x180/E53935/FFFFFF?text=Event+1" alt="社团活动照片1">
+                <img src="https://via.placeholder.com/240x180/E53935/FFFFFF?text=Event+2" alt="社团活动照片2">
+                <img src="https://via.placeholder.com/240x180/E53935/FFFFFF?text=Event+3" alt="社团活动照片3">
+                <img src="https://via.placeholder.com/240x180/E53935/FFFFFF?text=Event+4" alt="社团活动照片4">
+            </div>
+            <p style="text-align: center; font-size: 0.9em; color: #777;">记录我们的精彩瞬间 (请替换为真实照片)</p>
+        </section>
+
+        <section id="contact" class="section">
+            <h2>加入我们</h2>
+            <p>如果你也热爱Bang Dream，想要结识更多志同道合的朋友，欢迎加入我们！</p>
+            <div class="contact-info">
+                <p>联系方式：</p>
+                <p>QQ群：[在此填写QQ群号]</p>
+                <p>微信公众号：[在此填写公众号名称或二维码]</p>
+                <p>社团邮箱：[在此填写社团邮箱]</p>
+            </div>
+            <p>期待与你相遇，一起为Bang Dream应援！</p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 广东工业大学Bang Dream同好会 |  All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('nav');
+            const splash = document.querySelector('.splash-container');
+
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+                splash.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+                splash.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
