@@ -6,6 +6,7 @@
         <el-steps :active="currentStep" finish-status="success" simple>
           <el-step title="选择大头" />
           <el-step title="上传头像" />
+          <el-step title="确认" />
           <el-step title="完成" />
         </el-steps>
       </div>
@@ -41,33 +42,45 @@
             </div>
           </div>
 
-          <!-- 第二步：上传头像 -->
+          <!-- 第二步：choose头像 -->
           <div v-show="currentStep === 2" class="step-panel">
-            <uploader
-                :event-id="event_id"
-                :selected-face="selectedFace"
-                :selected-face-url="selectedFaceUrl"
-                @avatar-uploaded="handleAvatarUploaded"
-            />
+            <h3>输入 QQ 号获取头像</h3>
+            <el-row :gutter="20">
+              <el-col :span="16">
+                <el-input type="number" v-model="qqNumber" placeholder="输入你的 QQ 号"/>
+              </el-col>
+              <el-col :span="8">
+                <el-button @click="fetchQQAvatar" :disabled="!qqNumber || !selectedFace || qqAvatarLoading">
+                  {{ qqAvatarLoading ? '获取中...' : '获取 QQ 头像' }}
+                </el-button>
+              </el-col>
+            </el-row>
+            <div v-if="isAvatarSelected">
+                  <h4>QQ 头像预览:</h4>
+                  <div>
+                    <img :src="qqAvatarUrl" alt="QQ Avatar" style="max-width: 100px; max-height: 100px;"/>
+                  </div>
+            </div>
+
             <div class="step-actions">
               <el-button
                   type="primary"
-                  :disabled="!isUploadCompleted"
+                  :disabled="!isAvatarSelected"
                   @click="completeProcess"
               >
-                完成 <i class="el-icon-check"></i>
+                下一步 <i class="el-icon-check"></i>
               </el-button>
             </div>
           </div>
 
-          <!-- 第三步：完成 -->
-          <div v-show="currentStep === 3" class="step-panel success-panel">
+          <!-- Step 3: Confirm -->
+          <div v-show="currentStep === 3" class="step-panel confirm-panel">
             <div class="success-icon">
               <i class="el-icon-check"></i>
             </div>
-            <h2>恭喜，大头采集完成！</h2>
-            <p>您的头像已成功上传，点击下方按钮返回查看结果。</p>
-            <div class="preview-container" v-if="uploadedAvatar && selectedFaceUrl">
+            <h2>请确认您的选择</h2>
+            <p>请确认二者准确无误</p>
+            <div class="preview-container">
               <div class="preview-item">
                 <img :src="selectedFaceUrl" alt="选择的大头" />
                 <p>您选择的大头</p>
@@ -76,10 +89,25 @@
                 <i class="el-icon-right"></i>
               </div>
               <div class="preview-item">
-                <img :src="uploadedAvatarUrl" alt="上传的头像" />
+                <img :src="qqAvatarUrl" alt="上传的头像" />
                 <p>您上传的头像</p>
               </div>
             </div>
+            <div class="step-actions">
+              <el-button @click="resetProcess">重新选择</el-button>
+              <el-button type="primary" @click="uploadQQAvatar">上传</el-button>
+            </div>
+          </div>
+
+          <!-- 第四步：完成 -->
+          <div v-show="currentStep === 4" class="step-panel success-panel">
+            <div class="success-icon">
+              <i class="el-icon-check"></i>
+            </div>
+            <el-result
+              :icon="uploadResult"
+              :title="uploadMessage"
+            />
             <div class="step-actions">
               <el-button type="primary" @click="resetProcess">完成另一个</el-button>
               <el-button @click="backToHome">返回首页</el-button>
@@ -96,101 +124,157 @@
         <span class="note note-3">♬</span>
       </div>
       <div class="footer-content">
-        <div>Copyright (C) 2025 Faspand for GDUT BanGDream Fan Club</div>
+        <div>Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club</div>
         <div>「BanGDream!」は株式会社ブシロードの登録商標です。</div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import FaceSelector from '../components/FaceSelector.vue';
-import Uploader from '../components/Uploader.vue';
+<script setup>
 import { ref } from 'vue';
+import FaceSelector from '../components/FaceSelector.vue';
+import { apiClient } from "@/api/axios.js";
+import { useRouter } from 'vue-router';
 
-export default {
-  components: {
-    FaceSelector,
-    Uploader,
-  },
-  props: {
-    event_id: {
-      type: String,
-      required: true,
-    },
-  },
-  setup(props) {
-    const selectedFace = ref(null);
-    const uploadedAvatar = ref(null);
-    const selectedFaceUrl = ref(null);
-    const uploadedAvatarUrl = ref(null);
-    const description = ref(localStorage.getItem('description') || '活动');
-    const currentStep = ref(1);
-    const isUploadCompleted=ref(false);
+// 接收 props
+const props = defineProps({
+  event_id: {
+    type: String,
+    required: true
+  }
+});
 
-    const stepTexts = [
-      '请在下方选择您的大头位置',
-      '请上传您的头像',
-      '完成！'
-    ];
+const emit = defineEmits(['avatar-uploaded']);
 
-    const handleFaceSelected = (face, url) => {
-      selectedFace.value = face;
-      selectedFaceUrl.value = url;
-    };
+const selectedFace = ref(null);
+const uploadedAvatar = ref(null);
+const selectedFaceUrl = ref(null);
+const uploadedAvatarUrl = ref(null);
+const description = ref(localStorage.getItem('description') || '活动');
+const currentStep = ref(1);
+const isAvatarSelected = ref(false);
+const isUploadCompleted = ref(false);
 
-    const handleAvatarUploaded = (filename, url) => {
-      console.log('Avatar uploaded:', filename, url); // 添加调试信息
-      uploadedAvatar.value = filename;
-      uploadedAvatarUrl.value = url || null;
-      isUploadCompleted.value = true;
-    };
+const stepTexts = [
+  '请在下方选择您的大头位置',
+  '请上传您的头像',
+  '完成！'
+];
 
-    const nextStep = () => {
-      if (currentStep.value < 3) {
-        currentStep.value++;
+const handleFaceSelected = (face, url) => {
+  selectedFace.value = face;
+  selectedFaceUrl.value = url;
+};
+
+const handleAvatarSelected = (filename, url) => {
+  console.log('Avatar uploaded:', filename, url);
+  uploadedAvatar.value = filename;
+  uploadedAvatarUrl.value = url || null;
+  isAvatarSelected.value = true;
+};
+
+const handleAvatarUploaded = (filename, url) => {
+  console.log('Avatar uploaded:', filename, url);
+  uploadedAvatar.value = filename;
+  uploadedAvatarUrl.value = url || null;
+  isUploadCompleted.value = true;
+};
+
+const nextStep = () => {
+  if (currentStep.value < 3) currentStep.value++;
+};
+
+const prevStep = () => {
+  if (currentStep.value > 1) currentStep.value--;
+};
+
+const completeProcess = () => {
+  currentStep.value = 3;
+};
+
+const resetProcess = () => {
+  selectedFace.value = null;
+  uploadedAvatar.value = null;
+  selectedFaceUrl.value = null;
+  uploadedAvatarUrl.value = null;
+  currentStep.value = 1;
+};
+
+const router = useRouter();
+const backToHome = () => {
+  router.push('/event');
+};
+
+// 以下为 QQ 头像上传相关逻辑
+const qqAvatarUrl = ref('');
+const qqNumber = ref('');
+const uploadMessage = ref('');
+const uploadError = ref('');
+const uploadedImageUrl = ref(null);
+const uploadedFilename = ref(null);
+const uploadButton = ref('primary');
+const qqAvatarUploading = ref(false);
+const uploadResult = ref('');
+const qqAvatarError = ref('');
+const qqAvatarLoading = ref(false);
+const confirmDialogVisible = ref(false);
+const uploadDialogVisible = ref(false);
+
+const fetchQQAvatar = async () => {
+      if (!qqNumber.value) {
+        qqAvatarError.value = '请输入 QQ 号';
+        return;
       }
+      qqAvatarLoading.value = true;
+      qqAvatarError.value = '';
+      qqAvatarUrl.value = `https://q1.qlogo.cn/g?b=qq&nk=${qqNumber.value}&s=640`;
+      qqAvatarLoading.value = false;
+      isAvatarSelected.value = true;
+      // 浏览器的 <img> 标签会处理图片的加载和错误
     };
 
-    const prevStep = () => {
-      if (currentStep.value > 1) {
-        currentStep.value--;
-      }
-    };
+const uploadQQAvatar = async () => {
+  if (!qqAvatarUrl.value) {
+    uploadError.value = '请先获取 QQ 头像';
+    return;
+  }
+  if (!selectedFace.value) {
+    uploadError.value = '请先选择一张脸';
+    return;
+  }
 
-    const completeProcess = () => {
-      currentStep.value = 3;
-    };
+  qqAvatarUploading.value = true;
+  uploadMessage.value = '';
+  uploadError.value = '';
+  uploadedImageUrl.value = null;
+  uploadedFilename.value = null;
+  uploadButton.value = 'primary';
 
-    const resetProcess = () => {
-      selectedFace.value = null;
-      uploadedAvatar.value = null;
-      selectedFaceUrl.value = null;
-      uploadedAvatarUrl.value = null;
-      currentStep.value = 1;
-    };
+  try {
+    const res = await apiClient.post(`/upload-qq-avatar/${props.event_id}/${selectedFace.value}`, {
+      qqNumber: qqNumber.value,
+      faceId: selectedFace.value,
+      eventId: props.event_id,
+    });
 
-    const backToHome = () => {
-      window.location.href = '/event';
-    };
-
-    return {
-      selectedFace,
-      uploadedAvatar,
-      selectedFaceUrl,
-      uploadedAvatarUrl,
-      description,
-      currentStep,
-      stepTexts,
-      isUploadCompleted,
-      handleFaceSelected,
-      handleAvatarUploaded,
-      nextStep,
-      prevStep,
-      completeProcess,
-      resetProcess,
-      backToHome
-    };
+    uploadMessage.value = res.data.message;
+    uploadedImageUrl.value = qqAvatarUrl.value;
+    uploadedFilename.value = res.data.filename;
+    currentStep.value = 4;
+    uploadResult.value = 'success';
+    emit('avatar-uploaded', res.data.filename);
+  } catch (err) {
+    console.error('上传 QQ 头像失败:', err);
+    uploadError.value = '上传 QQ 头像失败，请稍后重试。';
+    uploadResult.value = 'error';
+    if (err.response?.data?.error) {
+      uploadError.value = err.response.data.error;
+    }
+  } finally {
+    qqAvatarUploading.value = false;
+    confirmDialogVisible.value = false;
+    uploadDialogVisible.value = true;
   }
 };
 </script>
@@ -222,7 +306,7 @@ export default {
 }
 
 .steps-container {
-  max-width: 600px;
+  max-width: 650px;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.2);
   padding: 0.8rem;
@@ -295,6 +379,11 @@ export default {
   justify-content: flex-end;
   border-top: 1px solid #eee;
   padding-top: 1.5rem;
+}
+
+.confirm-panel {
+  text-align: center;
+  padding: 2rem 0;
 }
 
 .success-panel {
