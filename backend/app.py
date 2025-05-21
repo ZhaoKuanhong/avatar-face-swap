@@ -234,5 +234,21 @@ def event_page(event_id):
     return app.send_static_file('index.html')
 
 
+@app.route('/api/verify-token', methods=['GET'])
+def verify_token_api():
+    token = None
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+
+    if not token:
+        return jsonify(error='未提供token'), 401
+
+    user_data = verify_auth_token(token)
+    if not user_data:
+        return jsonify(error='无效或过期的token'), 401
+
+    return jsonify(role=user_data.get('role'), event_id=user_data.get('event_id'))
+
 if __name__ == '__main__':
     app.run(port=5001, debug=True)

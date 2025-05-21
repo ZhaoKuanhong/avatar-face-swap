@@ -20,7 +20,7 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
   ],
-  base: '/event/',
+  base: '/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
