@@ -26,7 +26,7 @@ defineProps({
 const canvasRef = ref(null)
 let canvasWidth = ref(0)
 let canvasHeight = ref(0)
-const DEFAULT_FACE_URL = '/event/default-face.png' // 或替换为公网地址
+const DEFAULT_FACE_URL = '/default-face.png'
 
 
 let canvas = null
