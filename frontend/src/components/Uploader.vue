@@ -184,7 +184,6 @@ export default {
       this.uploadError = '';
       this.uploadedImageUrl = null;
       this.uploadedFilename = null;
-      this.uploadButton = 'primary';
 
       try {
         const uploadResponse = await apiClient.post(`/upload-qq-avatar/${this.eventId}/${this.selectedFace}`, {
@@ -192,25 +191,61 @@ export default {
           faceId: this.selectedFace,
           eventId: this.eventId,
         });
+
         this.uploadMessage = uploadResponse.data.message;
-        this.uploadedImageUrl = this.qqAvatarUrl; // 直接使用 QQ 头像 URL 作为预览
-        this.uploadedFilename = uploadResponse.data.filename;
-        this.$emit('avatar-uploaded', uploadResponse.data.filename);
+        this.uploadedFilename = `${this.selectedFace.split('.')[0]}.jpg`;
+        this.uploadedImageUrl = this.qqAvatarUrl;
+
+        // 添加检查文件存在的轮询
+        await this.verifyFileExists();
+
+        // 文件确认存在后，触发上传完成事件
+        this.$emit('avatar-uploaded', this.uploadedFilename, this.qqAvatarUrl);
+        this.uploadResult = 'success';
 
       } catch (error) {
         console.error('上传 QQ 头像失败:', error);
         this.uploadError = '上传 QQ 头像失败，请稍后重试。';
-        this.uploadResult = 'error'
+        this.uploadResult = 'error';
         if (error.response && error.response.data && error.response.data.error) {
           this.uploadError = error.response.data.error;
         }
       } finally {
-        this.uploadResult = 'success';
         this.qqAvatarUploading = false;
         this.confirmDialogVisible = false;
         this.uploadDialogVisible = true;
       }
     },
+
+    async verifyFileExists() {
+      let attempts = 0;
+      const maxAttempts = 10;
+      const delay = 500; // 500ms
+
+      while (attempts < maxAttempts) {
+        try {
+          // 尝试获取文件
+          const response = await apiClient.head(
+              `/events/${this.eventId}/faces/upload/${this.uploadedFilename}`,
+              { validateStatus: status => status < 500 }
+          );
+
+          if (response.status === 200) {
+            console.log('文件已确认存在');
+            return true; // 文件存在
+          }
+        } catch (e) {
+          // 忽略错误，继续尝试
+        }
+
+        // 等待一段时间后重试
+        await new Promise(resolve => setTimeout(resolve, delay));
+        attempts++;
+      }
+
+      console.warn('无法确认文件是否下载完成');
+      return false; // 超时
+    }
   },
   emits: ['avatar-uploaded'],
 };

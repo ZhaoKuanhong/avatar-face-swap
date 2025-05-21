@@ -1,22 +1,112 @@
 <template>
-  <el-container class="container">
-    <el-header class="header">
-      <h1 class="header-title">"{{ description }}"大头自助采集</h1>
-    </el-header>
-    <el-main class="main">
-      <face-selector :event-id="event_id" @face-selected="handleFaceSelected" />
-      <uploader :event-id="event_id" :selected-face="selectedFace" :selected-face-url="selectedFaceUrl"  @avatar-uploaded="handleAvatarUploaded" />
-    </el-main>
-    <el-footer class="footer">
-      <div>Copyright (C) 2025 Faspand for GDUT BanGDream Fan Club</div>
-      <div>「BanGDream!」は株式会社ブシロードの登録商標です。</div>
-    </el-footer>
-  </el-container>
+  <div class="event-container">
+    <div class="event-header">
+      <h1 class="event-title">"{{ description }}"大头自助采集</h1>
+      <div class="steps-container">
+        <el-steps :active="currentStep" finish-status="success" simple>
+          <el-step title="选择大头" />
+          <el-step title="上传头像" />
+          <el-step title="完成" />
+        </el-steps>
+      </div>
+    </div>
+
+    <div class="event-content">
+      <div class="content-card">
+        <div class="card-header">
+          <div class="step-indicator">
+            <span class="step-number">{{ currentStep }}</span>
+            <span class="step-text">{{ stepTexts[currentStep-1] }}</span>
+          </div>
+          <el-button v-if="currentStep > 1" @click="prevStep" plain size="small">
+            <i class="el-icon-arrow-left"></i> 返回
+          </el-button>
+        </div>
+
+        <div class="step-content">
+          <!-- 第一步：选择大头 -->
+          <div v-show="currentStep === 1" class="step-panel">
+            <face-selector
+                :event-id="event_id"
+                @face-selected="handleFaceSelected"
+            />
+            <div class="step-actions">
+              <el-button
+                  type="primary"
+                  :disabled="!selectedFace"
+                  @click="nextStep"
+              >
+                下一步 <i class="el-icon-arrow-right"></i>
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 第二步：上传头像 -->
+          <div v-show="currentStep === 2" class="step-panel">
+            <uploader
+                :event-id="event_id"
+                :selected-face="selectedFace"
+                :selected-face-url="selectedFaceUrl"
+                @avatar-uploaded="handleAvatarUploaded"
+            />
+            <div class="step-actions">
+              <el-button
+                  type="primary"
+                  :disabled="!isUploadCompleted"
+                  @click="completeProcess"
+              >
+                完成 <i class="el-icon-check"></i>
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 第三步：完成 -->
+          <div v-show="currentStep === 3" class="step-panel success-panel">
+            <div class="success-icon">
+              <i class="el-icon-check"></i>
+            </div>
+            <h2>恭喜，大头采集完成！</h2>
+            <p>您的头像已成功上传，点击下方按钮返回查看结果。</p>
+            <div class="preview-container" v-if="uploadedAvatar && selectedFaceUrl">
+              <div class="preview-item">
+                <img :src="selectedFaceUrl" alt="选择的大头" />
+                <p>您选择的大头</p>
+              </div>
+              <div class="arrow">
+                <i class="el-icon-right"></i>
+              </div>
+              <div class="preview-item">
+                <img :src="uploadedAvatarUrl" alt="上传的头像" />
+                <p>您上传的头像</p>
+              </div>
+            </div>
+            <div class="step-actions">
+              <el-button type="primary" @click="resetProcess">完成另一个</el-button>
+              <el-button @click="backToHome">返回首页</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event-footer">
+      <div class="notes-decoration">
+        <span class="note note-1">♪</span>
+        <span class="note note-2">♫</span>
+        <span class="note note-3">♬</span>
+      </div>
+      <div class="footer-content">
+        <div>Copyright (C) 2025 Faspand for GDUT BanGDream Fan Club</div>
+        <div>「BanGDream!」は株式会社ブシロードの登録商標です。</div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
 import FaceSelector from '../components/FaceSelector.vue';
 import Uploader from '../components/Uploader.vue';
+import { ref } from 'vue';
 
 export default {
   components: {
@@ -29,93 +119,283 @@ export default {
       required: true,
     },
   },
-  data() {
-    return {
-      selectedFace: null,
-      uploadedAvatar: null,
-      selectedFaceUrl: null,
-      description: localStorage.getItem('description')
+  setup(props) {
+    const selectedFace = ref(null);
+    const uploadedAvatar = ref(null);
+    const selectedFaceUrl = ref(null);
+    const uploadedAvatarUrl = ref(null);
+    const description = ref(localStorage.getItem('description') || '活动');
+    const currentStep = ref(1);
+    const isUploadCompleted=ref(false);
+
+    const stepTexts = [
+      '请在下方选择您的大头位置',
+      '请上传您的头像',
+      '完成！'
+    ];
+
+    const handleFaceSelected = (face, url) => {
+      selectedFace.value = face;
+      selectedFaceUrl.value = url;
     };
-  },
-  methods: {
-    handleFaceSelected(face, url) {
-      this.selectedFace = face;
-      this.selectedFaceUrl = url;
-    },
-    handleAvatarUploaded(filename) {
-      this.uploadedAvatar = filename;
-    },
-  },
+
+    const handleAvatarUploaded = (filename, url) => {
+      console.log('Avatar uploaded:', filename, url); // 添加调试信息
+      uploadedAvatar.value = filename;
+      uploadedAvatarUrl.value = url || null;
+      isUploadCompleted.value = true;
+    };
+
+    const nextStep = () => {
+      if (currentStep.value < 3) {
+        currentStep.value++;
+      }
+    };
+
+    const prevStep = () => {
+      if (currentStep.value > 1) {
+        currentStep.value--;
+      }
+    };
+
+    const completeProcess = () => {
+      currentStep.value = 3;
+    };
+
+    const resetProcess = () => {
+      selectedFace.value = null;
+      uploadedAvatar.value = null;
+      selectedFaceUrl.value = null;
+      uploadedAvatarUrl.value = null;
+      currentStep.value = 1;
+    };
+
+    const backToHome = () => {
+      window.location.href = '/event';
+    };
+
+    return {
+      selectedFace,
+      uploadedAvatar,
+      selectedFaceUrl,
+      uploadedAvatarUrl,
+      description,
+      currentStep,
+      stepTexts,
+      isUploadCompleted,
+      handleFaceSelected,
+      handleAvatarUploaded,
+      nextStep,
+      prevStep,
+      completeProcess,
+      resetProcess,
+      backToHome
+    };
+  }
 };
 </script>
 
-<style>
-container {
+<style scoped>
+.event-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #ffecf2 0%, #fff5fa 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.header {
-  background: linear-gradient(135deg, rgba(115, 9, 9, 0.71), #ff1414);
+.event-header {
+  background: linear-gradient(135deg, rgba(255, 51, 119, 0.9), #ff3377);
   color: white;
-  padding: 1rem;
+  padding: 1.5rem;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
+  box-shadow: 0 4px 15px rgba(255, 51, 119, 0.2);
+  position: relative;
+  z-index: 10;
 }
 
-.header-title {
-  font-size: 1.8rem;
+.event-title {
+  font-size: 2rem;
   font-weight: bold;
-  margin: 0;
+  margin-bottom: 1rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.main {
-  flex: 1;
-  max-width: 1200px;
-  min-width: 50vw;
-  margin: 80px auto 20px;
-  padding: 2rem;
-  background-color: white;
+.steps-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.8rem;
   border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
-.footer {
-  width: 100vw;
-  background-color: #f8f9fa;
-  color: #666;
-  text-align: center;
+.event-content {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+.content-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 900px;
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1rem;
-  font-size: 0.9rem;
+  background: rgba(255, 221, 238, 0.3);
+  border-bottom: 1px solid rgba(255, 51, 119, 0.1);
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #FF3377;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.step-text {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.step-content {
+  padding: 2rem;
+}
+
+.step-panel {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.step-actions {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
   border-top: 1px solid #eee;
+  padding-top: 1.5rem;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .header-title {
-    font-size: 1.4rem;
-  }
-
-  .main {
-    padding: 1rem;
-    margin: 60px 10px 10px;
-    border-radius: 0;
-    box-shadow: none;
-  }
+.success-panel {
+  text-align: center;
+  padding: 2rem 0;
 }
 
-/* 添加一些动画效果 */
+.success-icon {
+  font-size: 4rem;
+  color: #52c41a;
+  margin-bottom: 1rem;
+}
+
+.preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.preview-item {
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin: 0 1rem;
+  width: 150px;
+}
+
+.preview-item img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.arrow {
+  font-size: 2rem;
+  color: #ccc;
+  margin: 0 1rem;
+}
+
+.event-footer {
+  background: #333;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-content {
+  position: relative;
+  z-index: 2;
+}
+
+.notes-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.note {
+  position: absolute;
+  color: rgba(255, 221, 238, 0.1);
+  font-size: 2rem;
+  animation: float 6s ease-in-out infinite;
+}
+
+.note-1 {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+  font-size: 2.5rem;
+}
+
+.note-2 {
+  top: 40%;
+  right: 15%;
+  animation-delay: 1s;
+  font-size: 2rem;
+}
+
+.note-3 {
+  bottom: 30%;
+  left: 40%;
+  animation-delay: 2s;
+  font-size: 3rem;
+}
+
+/* 动画 */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -123,32 +403,70 @@ container {
   }
 }
 
-.main {
-  animation: fadeIn 0.5s ease-out;
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translateY(-10px) rotate(5deg);
+    opacity: 0.2;
+  }
 }
-</style>
-<style>
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #121212;
-    color: #e0e0e0;
+
+/* ElementPlus 组件样式覆盖 */
+:deep(.el-button--primary) {
+  background-color: #FF3377;
+  border-color: #FF3377;
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: #FF1166;
+  border-color: #FF1166;
+}
+
+:deep(.el-steps--simple) {
+  background: transparent;
+}
+
+:deep(.el-step__title.is-process) {
+  color: white;
+  font-weight: bold;
+}
+
+:deep(.el-step__title.is-wait) {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+:deep(.el-step__head.is-process) {
+  color: white;
+  border-color: white;
+}
+
+@media (max-width: 768px) {
+  .event-content {
+    padding: 1rem;
   }
 
-  .header {
-    background: linear-gradient(135deg, rgba(255, 85, 85, 0.8), #ff3333);
-    color: #fff;
+  .step-content {
+    padding: 1rem;
   }
 
-  .main {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  .event-title {
+    font-size: 1.5rem;
   }
 
-  .footer {
-    background-color: #1a1a1a;
-    color: #aaa;
-    border-top: 1px solid #333;
+  .preview-container {
+    flex-direction: column;
+  }
+
+  .preview-item {
+    margin: 1rem 0;
+  }
+
+  .arrow {
+    transform: rotate(90deg);
+    margin: 0.5rem 0;
   }
 }
 </style>

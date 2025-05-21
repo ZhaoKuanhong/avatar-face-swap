@@ -103,14 +103,19 @@ const fetchEvent = async () => {
   try {
     loading.value = true;
     const response = await apiClient.get('/events');
+    //patch，也许以后用得着，留着object
     if (response.data && response.data.events) {
-      eventList.value = Object.entries(response.data.events).map(([id, data]) => ({
-        event_id: id,
-        description: data.description,
-        event_date: data.event_date || '', // 你原代码没设置
-        token: data.token,
-        is_open: data.is_open,
-      }));
+      if (Array.isArray(response.data.events)) {
+        eventList.value = response.data.events;
+      } else {
+        eventList.value = Object.entries(response.data.events).map(([id, data]) => ({
+          event_id: id,
+          description: data.description,
+          event_date: data.event_date || '',
+          token: data.token,
+          is_open: data.is_open,
+        }));
+      }
     } else {
       eventList.value = [];
     }

@@ -81,10 +81,10 @@ def download_qq_avatar_async(event_id, selected_face, qq_number):
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
-        print(f"[✓] QQ头像下载成功: {avatar_filename}")
+        print(f"[OK] QQ头像下载成功: {avatar_filename}")
 
     except Exception as e:
-        print(f"[✗] 下载/保存 QQ 头像失败: {e}")
+        print(f"[ERROR] 下载/保存 QQ 头像失败: {e}")
 
 
 def verify_auth_token(token):
@@ -129,3 +129,95 @@ def requires_admin_permission(func):
             return jsonify(error='需要管理员权限'), 403
     wrapper.__name__ = func.__name__
     return wrapper
+
+
+def log_activity(level, module, action, user_id=None, event_id=None, details=None):
+    """activity logs"""
+    try:
+        ip_address = request.remote_addr if request else None
+        details_json = json.dumps(details) if details else None
+
+        execute_db('''
+            INSERT INTO system_log (level, module, action, user_id, event_id, ip_address, details)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', [level, module, action, user_id, event_id, ip_address, details_json])
+
+        return True
+    except Exception as e:
+        print(f"记录日志失败: {e}")
+        return False
+
+
+def get_logs(page=1, per_page=20, level=None, module=None, start_date=None, end_date=None):
+    """获取系统日志，支持分页和筛选"""
+    try:
+        query = 'SELECT * FROM system_log WHERE 1=1'
+        params = []
+
+        if level:
+            query += ' AND level = ?'
+            params.append(level)
+
+        if module:
+            query += ' AND module = ?'
+            params.append(module)
+
+        if start_date:
+            query += ' AND timestamp >= ?'
+            params.append(start_date)
+
+        if end_date:
+            query += ' AND timestamp <= ?'
+            params.append(end_date)
+
+        # 添加排序和分页
+        query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+        params.extend([per_page, (page - 1) * per_page])
+
+        # 获取总记录数
+        count_query = 'SELECT COUNT(*) as count FROM system_log WHERE 1=1'
+        count_params = []
+
+        if level:
+            count_query += ' AND level = ?'
+            count_params.append(level)
+
+        if module:
+            count_query += ' AND module = ?'
+            count_params.append(module)
+
+        if start_date:
+            count_query += ' AND timestamp >= ?'
+            count_params.append(start_date)
+
+        if end_date:
+            count_query += ' AND timestamp <= ?'
+            count_params.append(end_date)
+
+        total_count_row = query_db(count_query, count_params, one=True)
+        total_count = total_count_row['count'] if total_count_row else 0
+
+        # 获取日志记录并转换为可JSON序列化的字典
+        logs_rows = query_db(query, params)
+        logs = []
+
+        # 转换Row对象为普通字典
+        for row in logs_rows:
+            log_dict = dict(row)
+            # 如果details是JSON字符串，可以选择解析它
+            if log_dict.get('details'):
+                try:
+                    log_dict['details'] = json.loads(log_dict['details'])
+                except:
+                    pass  # 保持原样
+            logs.append(log_dict)
+
+        return {
+            'logs': logs,
+            'total': total_count,
+            'page': page,
+            'per_page': per_page
+        }
+    except Exception as e:
+        print(f"获取日志失败: {e}")
+        return {'logs': [], 'total': 0, 'page': page, 'per_page': per_page}

@@ -3,6 +3,7 @@ import cv2
 import dlib
 import os
 
+
 def recognize_and_crop_faces(image_path, output_folder="cropped_faces"):
     """
     识别人脸，截取人脸部分并保存为编号的文件。
@@ -61,14 +62,14 @@ def recognize_and_crop_faces(image_path, output_folder="cropped_faces"):
         cropped_face = img[cropped_y1:cropped_y2, cropped_x1:cropped_x2]
 
         # 构建输出文件名
-        output_filename = os.path.join(output_folder, f"face_{i+1}.jpg")
+        output_filename = os.path.join(output_folder, f"face_{i + 1}.jpg")
 
         # 保存裁剪的人脸图像
         cv2.imwrite(output_filename, cropped_face)
-        print(f"检测到人脸 {i+1}，已保存至: {output_filename}")
+        print(f"检测到人脸 {i + 1}，已保存至: {output_filename}")
 
         face_info = {
-            "filename": f"face_{i+1}.jpg",
+            "filename": f"face_{i + 1}.jpg",
             "coordinates": {
                 "x1": int(cropped_x1),
                 "y1": int(cropped_y1),
@@ -89,6 +90,6 @@ def recognize_and_crop_faces(image_path, output_folder="cropped_faces"):
 
 
 if __name__ == "__main__":
-    image_file = "input.jpeg"  # 替换为您的输入图像文件路径
+    image_file = "input/test.jpg"  # 替换为您的输入图像文件路径
     recognize_and_crop_faces(image_file)
     print("人脸识别和裁剪完成！")

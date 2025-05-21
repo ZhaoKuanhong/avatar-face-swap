@@ -40,8 +40,16 @@ const PublicRoutes = [
                 path: 'list/:event_id',
                 name: 'EventSetting',
                 component: () => import('@/components/PicEdit.vue')
+            },
+            {
+                path: 'logs',
+                name: 'SystemLogs',
+                component: () => import('@/views/LogView.vue'),
+                meta: {
+                    title: '系统日志',
+                    requiresAdmin: true
+                }
             }
-
         ]
     },
     { path: '/event', component: Auth},
@@ -52,7 +60,8 @@ const PublicRoutes = [
         meta: { requiresAuth: true }
     },
 
-    { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound }
+    { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound },
+
     // { path: '/event/admin/edit/:event_id', component:  () => import('@/views/PicEdit.vue'), name: 'pic', props: true},
 ]
 

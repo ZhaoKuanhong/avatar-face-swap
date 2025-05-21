@@ -12,6 +12,7 @@ CORS(app)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 @app.route('/api/verify', methods=['POST'])
 def verify_token():
     """验证口令并返回 event_id 和 description"""
@@ -22,6 +23,15 @@ def verify_token():
     token = data['token']
     if token == ADMIN_PASSWORD:
         token_data = {'role': 'admin'}
+
+        log_activity(
+            level="INFO",
+            module="用户认证",
+            action="管理员登录",
+            user_id="admin",
+            details={"ip": request.remote_addr}
+        )
+
         return jsonify(event_id='admin', token=token_serializer.dumps(token_data))
     else:
         result = query_db(
@@ -33,8 +43,18 @@ def verify_token():
         if result:
             if result['is_open']:
                 token_data = {'role': 'user', 'event_id': result['event_id']}
+
+                log_activity(
+                    level="INFO",
+                    module="用户认证",
+                    action="用户登录",
+                    event_id=result['event_id'],
+                    details={"ip": request.remote_addr}
+                )
+
                 return jsonify(event_id=result['event_id'], description=result['description'],
                                token=token_serializer.dumps(token_data)), 200
+
             else:
                 return jsonify(error='活动未开始或已结束采集'), 400
         else:
@@ -45,6 +65,7 @@ def verify_token():
 @requires_admin_permission
 def get_events():
     return jsonify(events=load_events())
+
 
 @app.route('/api/events/<int:event_id>', methods=['POST'])
 @requires_event_permission
@@ -88,6 +109,19 @@ def add_or_update_event(event_id):
             values.append(event_id)
 
             execute_db(update_sql, values)
+
+            user_data = verify_auth_token(request.headers.get('Authorization').replace('Bearer ', ''))
+            user_id = user_data.get('user_id') if user_data else None
+
+            log_activity(
+                level="INFO",
+                module="活动管理",
+                action="更新活动" if existing else "创建活动",
+                user_id=user_id,
+                event_id=event_id,
+                details={"description": description}
+            )
+
             return jsonify(message="事件已更新"), 200
 
         else:
@@ -121,16 +155,26 @@ def delete_event(event_id):
         # 删除事件
         execute_db('DELETE FROM event WHERE event_id = ?', [event_id])
 
+        log_activity(
+            level="WARNING",
+            module="活动管理",
+            action="删除活动",
+            user_id="admin",
+            event_id=str(event_id)
+        )
+
         return jsonify(message=f"事件 {event_id} 已成功删除"), 200
 
     except Exception as e:
         return jsonify(error=f"删除事件时发生错误: {str(e)}"), 500
+
 
 @app.route('/api/events/<event_id>/pic', methods=['GET'])
 @requires_event_permission
 def get_event_pic(event_id):
     event_pic_folder = os.path.join('event', event_id)
     return send_from_directory(event_pic_folder, 'input.jpg')
+
 
 @app.route('/api/events/<event_id>/pic/info', methods=['GET'])
 @requires_admin_permission
@@ -158,10 +202,11 @@ def get_event_faces(event_id):
     except Exception as e:
         return jsonify(error=str(e)), 500
 
+
 @app.route('/api/events/<event_id>/faces/info')
 @requires_admin_permission
 def get_event_faces_info(event_id):
-    event_faces_folder = os.path.join('event',event_id)
+    event_faces_folder = os.path.join('event', event_id)
     try:
         if not os.path.exists(event_faces_folder):
             return jsonify(error=f"Event ID '{event_id}' 的人脸文件夹不存在"), 404
@@ -175,14 +220,15 @@ def get_event_faces_info(event_id):
 @requires_event_permission
 def get_event_face_image(event_id, filename):
     """提供特定 event_id 对应的 cropped_faces 文件夹中的人脸图片。"""
-    event_faces_folder = os.path.join('event',event_id,CROPPED_FACES_FOLDER)
+    event_faces_folder = os.path.join('event', event_id, CROPPED_FACES_FOLDER)
     return send_from_directory(event_faces_folder, filename)
+
 
 @app.route('/api/events/<event_id>/faces/upload/<filename>')
 @requires_event_permission
 def get_upload_face_image(event_id, filename):
     """提供特定 event_id 对应的 cropped_faces 文件夹中的人脸图片。"""
-    event_faces_folder = os.path.join('event',event_id,'upload')
+    event_faces_folder = os.path.join('event', event_id, 'upload')
     return send_from_directory(event_faces_folder, filename)
 
 
@@ -202,7 +248,7 @@ def upload_file(event_id, selected_face):
         new_filename = f"{os.path.splitext(selected_face)[0]}.{file_extension}"
         secure_new_filename = secure_filename(new_filename)
 
-        event_upload_folder = os.path.join('event', event_id,'upload')
+        event_upload_folder = os.path.join('event', event_id, 'upload')
         os.makedirs(event_upload_folder, exist_ok=True)  # 确保 event_id 的上传文件夹存在
         filepath = os.path.join(event_upload_folder, secure_new_filename)
         file.save(filepath)
@@ -224,6 +270,18 @@ def upload_qq_avatar(event_id, selected_face):
         args=(event_id, selected_face, qq_number)
     )
     thread.start()
+
+    user_data = verify_auth_token(request.headers.get('Authorization').replace('Bearer ', ''))
+    user_id = user_data.get('user_id') if user_data else None
+
+    log_activity(
+        level="INFO",
+        module="图片处理",
+        action="上传QQ头像",
+        user_id=user_id,
+        event_id=event_id,
+        details={"face": selected_face, "qq_number": qq_number}
+    )
 
     return jsonify(message='头像上传成功'), 202  # HTTP 202 Accepted
 
@@ -249,6 +307,21 @@ def verify_token_api():
         return jsonify(error='无效或过期的token'), 401
 
     return jsonify(role=user_data.get('role'), event_id=user_data.get('event_id'))
+
+
+@app.route('/api/logs', methods=['GET'])
+@requires_admin_permission
+def get_system_logs():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    level = request.args.get('level')
+    module = request.args.get('module')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    logs_data = get_logs(page, per_page, level, module, start_date, end_date)
+    return jsonify(logs_data)
+
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
