@@ -33,6 +33,7 @@
             />
             <div class="step-actions">
               <el-button
+                  color="#FF3377"
                   type="primary"
                   :disabled="!selectedFace"
                   @click="nextStep"
@@ -64,6 +65,7 @@
 
             <div class="step-actions">
               <el-button
+                  color="#FF3377"
                   type="primary"
                   :disabled="!isAvatarSelected"
                   @click="completeProcess"
@@ -95,7 +97,7 @@
             </div>
             <div class="step-actions">
               <el-button @click="resetProcess">重新选择</el-button>
-              <el-button type="primary" @click="uploadQQAvatar">上传</el-button>
+              <el-button color="#FF3377" type="primary" @click="uploadQQAvatar">上传</el-button>
             </div>
           </div>
 
@@ -109,7 +111,7 @@
               :title="uploadMessage"
             />
             <div class="step-actions">
-              <el-button type="primary" @click="resetProcess">完成另一个</el-button>
+              <el-button color="#FF3377" type="primary" @click="resetProcess">完成另一个</el-button>
               <el-button @click="backToHome">返回首页</el-button>
             </div>
           </div>
@@ -504,15 +506,6 @@ const uploadQQAvatar = async () => {
 }
 
 /* ElementPlus 组件样式覆盖 */
-:deep(.el-button--primary) {
-  background-color: #FF3377;
-  border-color: #FF3377;
-}
-
-:deep(.el-button--primary:hover) {
-  background-color: #FF1166;
-  border-color: #FF1166;
-}
 
 :deep(.el-steps--simple) {
   background: transparent;
