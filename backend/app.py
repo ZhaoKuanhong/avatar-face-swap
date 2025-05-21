@@ -323,5 +323,73 @@ def get_system_logs():
     return jsonify(logs_data)
 
 
+@app.route('/api/events/<int:event_id>/upload-pic', methods=['POST'])
+@requires_admin_permission
+def upload_event_pic(event_id):
+    try:
+        if 'file' not in request.files:
+            return jsonify(error='No file part'), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify(error='No selected file'), 400
+
+        if file and allowed_file(file.filename):
+            # 确保事件目录存在
+            event_dir = os.path.join('event', str(event_id))
+            os.makedirs(event_dir, exist_ok=True)
+
+            # 保存临时文件
+            temp_path = os.path.join(event_dir, 'temp_input.jpg')
+            file.save(temp_path)
+
+            # 异步处理图片
+            process_image_async(event_id, temp_path)
+
+            log_activity(
+                level="INFO",
+                module="活动管理",
+                action="上传活动图片",
+                user_id="admin",
+                event_id=str(event_id),
+                details={"filename": file.filename}
+            )
+
+            return jsonify(message='图片上传成功，正在处理人脸识别'), 202
+
+        return jsonify(error='不支持的文件类型'), 400
+
+    except Exception as e:
+        return jsonify(error=f'上传失败: {str(e)}'), 500
+
+
+@app.route('/api/events/<int:event_id>/process-status', methods=['GET'])
+@requires_admin_permission
+def get_process_status(event_id):
+    try:
+        event_dir = os.path.join('event', str(event_id))
+        faces_info_path = os.path.join(event_dir, 'faces_info.json')
+
+        if os.path.exists(faces_info_path):
+            with open(faces_info_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                faces_count = len(data.get('faces', []))
+
+            return jsonify(
+                status="completed",
+                faces_count=faces_count,
+                message=f"处理完成，识别到 {faces_count} 个人脸"
+            ), 200
+        else:
+            # 检查临时文件是否存在，判断是否正在处理
+            temp_path = os.path.join(event_dir, 'temp_input.jpg')
+            if os.path.exists(temp_path):
+                return jsonify(status="processing", message="正在处理中"), 200
+            else:
+                return jsonify(status="not_started", message="尚未上传图片"), 404
+
+    except Exception as e:
+        return jsonify(error=f'获取状态失败: {str(e)}'), 500
+
 if __name__ == '__main__':
     app.run(port=5001, debug=True)

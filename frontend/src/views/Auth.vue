@@ -33,7 +33,7 @@
       <span class="note note-3">♬</span>
     </div>
     <footer class="footer">
-      Copyright (C) 2025 Faspand for GDUT BanGDream Fan Club
+      Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club
     </footer>
   </div>
   </body>
