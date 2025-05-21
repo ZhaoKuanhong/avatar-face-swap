@@ -274,23 +274,23 @@ body {
 
 .error-message {
   margin-top: 16px;
-  color: #ff4757;
+  color: #ffffff;
   font-size: 14px;
   text-align: center;
   padding: 8px 12px;
-  background: rgba(255, 71, 87, 0.1);
+  background: rgba(255, 71, 87, 0.5);
   border-radius: 4px;
   width: 100%;
   animation: shake 0.5s;
-  z-index: 11; /* 确保在前景 */
+  z-index: 11;
 }
 
 .music-notes {
   position: absolute;
   width: 100%;
   height: 100%;
-  z-index: 1; /* 确保音符在背景 */
-  pointer-events: none; /* 关键修复：让音符不捕获鼠标事件 */
+  z-index: 1;
+  pointer-events: none;
 }
 
 .note {
@@ -298,7 +298,7 @@ body {
   color: rgba(255, 221, 238, 0.5);
   font-size: 3rem;
   animation: float 6s ease-in-out infinite;
-  pointer-events: none; /* 确保音符不捕获鼠标事件 */
+  pointer-events: none;
 }
 
 .note-1 {
