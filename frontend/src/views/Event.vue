@@ -306,7 +306,7 @@ const uploadQQAvatar = async () => {
 }
 
 .steps-container {
-  max-width: 650px;
+  max-width: 700px;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.2);
   padding: 0.8rem;
