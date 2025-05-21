@@ -74,7 +74,6 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const token = localStorage.getItem('token');
 
-    // check
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
 
@@ -88,22 +87,12 @@ router.beforeEach(async (to, from, next) => {
     }
 
     try {
-        // validate
         const response = await apiClient.get('/verify-token');
         const userData = response.data;
 
-        // check if admin
         if (requiresAdmin && userData.role !== 'admin') {
             ElMessage.error('需要管理员权限');
             return next('/event');
-        }
-
-        // check user
-        if (requiresAuth && to.params.event_id) {
-            if (userData.role !== 'admin' && userData.event_id !== to.params.event_id) {
-                ElMessage.error('您没有权限访问此活动');
-                return next('/event');
-            }
         }
 
         return next();
