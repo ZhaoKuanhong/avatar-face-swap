@@ -58,7 +58,7 @@
         </el-main>
 
         <el-footer class="admin-footer">
-          <div class="copyright">Copyright (C) 2025 Faspand for GDUT BanGDream Fan Club</div>
+          <div class="copyright">Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club</div>
           <div class="disclaimer">「BanGDream!」は株式会社ブシロードの登録商標です。</div>
         </el-footer>
       </el-container>
