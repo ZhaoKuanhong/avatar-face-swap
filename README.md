@@ -1,4 +1,7 @@
-# 团建大头自动覆盖
+<div align="center">
+  <h2><b> 团建合影大头自动覆盖 </b></h2>
+</div>
+
 
 ## 项目简介
 
@@ -16,6 +19,11 @@
 * **前端:** Vue.js
 * **后端:** Flask (Python)
 * **图像处理 (后端):** dlib, OpenCV (用于人脸识别和裁剪)
+
+## 需要指定的参数
+1.`frontend/env.production` `VITE_API_BASE_URL`
+
+2.`backend/lib/common/constants.py` `SECRET_KEY` `ADMIN_PASSWORD`
 
 ## How to use
 
@@ -36,6 +44,7 @@ backend/
 ## To do
 - [ ] 通过后端创建活动文件夹而无需手动创建
 - [ ] 更漂亮的UI
+- [ ] 统一为vue3语法风格
 
 ## 演示
 登录页面
