@@ -61,7 +61,7 @@
     >
       <div class="image-group">
         <div class="block">
-          <img :src="`${baseUrl}/events/${eventId}/faces/${selectedFace}`" :alt="face" class="face-image" style="height: 100px">
+          <img  :src="`${this.selectedFaceUrl}`" :alt="selectedFace" class="face-image" style="height: 100px">
           <span class="demonstration">当前选择大头</span>
         </div>
         <div class="block">
@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import {apiClient} from "@/api/axios.js";
+import { apiClient } from "@/api/axios.js";
 
 export default {
   props: {
@@ -92,6 +92,10 @@ export default {
       required: true,
     },
     selectedFace: {
+      type: String,
+      default: null,
+    },
+    selectedFaceUrl:{
       type: String,
       default: null,
     },

@@ -44,6 +44,7 @@ const faces = ref([]);
 const faceUrlMap = ref({});
 const loading = ref(false);
 const selectedFace = ref(null);
+const selectedFaceUrl = ref(null);
 
 onMounted(() => {
   fetchFaces();
@@ -81,7 +82,8 @@ async function loadFaceImage(face) {
 
 function selectFace(face) {
   selectedFace.value = face;
-  emit('face-selected', face);
+  selectedFaceUrl.value = faceUrlMap.value[face];
+  emit('face-selected', selectedFace.value, selectedFaceUrl.value);
 }
 </script>
 
