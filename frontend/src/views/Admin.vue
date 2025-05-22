@@ -1,7 +1,24 @@
 <template>
   <div class="admin-layout">
     <el-container>
-      <el-aside width="200px" class="sidebar">
+      <!-- 移动端汉堡菜单按钮 -->
+      <div class="mobile-menu-btn" @click="toggleMobileMenu">
+        <el-icon><Menu /></el-icon>
+      </div>
+
+      <!-- 移动端遮罩层 -->
+      <div
+          v-show="showMobileMenu"
+          class="mobile-overlay"
+          @click="closeMobileMenu"
+      ></div>
+
+      <!-- 侧边栏 -->
+      <el-aside
+          width="200px"
+          class="sidebar"
+          :class="{ 'mobile-sidebar-open': showMobileMenu }"
+      >
         <div class="logo-container">
           <img src="../assets/img/fc-logo.png" alt="GDUT BanGDream Fan Club" class="logo">
         </div>
@@ -13,28 +30,25 @@
             :uniqueOpened="true"
             :router="true"
         >
-          <el-menu-item index="/event/admin/list">
-            <el-icon><i class="el-icon-s-grid"></i></el-icon>
+          <el-menu-item index="/event/admin/list" @click="closeMobileMenu">
+            <el-icon><Grid /></el-icon>
             <span>活动管理</span>
           </el-menu-item>
-          <!--Todo-->
-          <el-menu-item index="/event/admin/logs">
-            <el-icon><i class="el-icon-document"></i></el-icon>
+          <el-menu-item index="/event/admin/logs" @click="closeMobileMenu">
+            <el-icon><Document /></el-icon>
             <span>系统日志</span>
           </el-menu-item>
-<!--          <el-menu-item index="/event/admin/settings">-->
-<!--            <el-icon><i class="el-icon-setting"></i></el-icon>-->
-<!--            <span>系统设置</span>-->
-<!--          </el-menu-item>-->
         </el-menu>
 
         <div class="sidebar-footer">
           <el-button type="text" @click="logout" class="logout-btn">
-            <i class="el-icon-switch-button"></i> 退出登录
+            <el-icon><SwitchButton /></el-icon>
+            <span>退出登录</span>
           </el-button>
         </div>
       </el-aside>
 
+      <!-- 主内容区域 -->
       <el-container class="main-container">
         <el-header class="admin-header">
           <div class="breadcrumb-container">
@@ -68,11 +82,13 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { inject, computed } from 'vue';
+import { inject, computed, ref, onMounted, onUnmounted } from 'vue';
+import { Menu, Grid, Document, SwitchButton } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const route = useRoute();
 const eventName = inject('eventName', null);
+const showMobileMenu = ref(false);
 
 // 面包屑标题：优先使用活动名
 const breadcrumbTitle = computed(() => {
@@ -93,6 +109,30 @@ const logout = () => {
   localStorage.removeItem('description');
   router.push('/event');
 };
+
+// 移动端菜单控制
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value;
+};
+
+const closeMobileMenu = () => {
+  showMobileMenu.value = false;
+};
+
+// 监听窗口大小变化
+const handleResize = () => {
+  if (window.innerWidth > 768) {
+    showMobileMenu.value = false;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
 </script>
 
 <style scoped>
@@ -101,11 +141,58 @@ const logout = () => {
   width: 100vw;
   background-color: #f9f9f9;
   display: flex;
+  position: relative;
 }
 
 .el-main {
-    background-color: #f5f7f9;
-    height: calc(100vh - 8rem);
+  background-color: #f5f7f9;
+  height: calc(100vh - 8rem);
+}
+
+/* 移动端汉堡菜单按钮 */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1002;
+  background: #FF3377;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(255, 51, 119, 0.3);
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: #FF1166;
+  transform: scale(1.05);
+}
+
+.mobile-menu-btn:active {
+  transform: scale(0.95);
+}
+
+/* 移动端遮罩层 */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-overlay[style*="block"] {
+  opacity: 1;
 }
 
 .sidebar {
@@ -148,6 +235,8 @@ const logout = () => {
   margin: 8px 0;
   border-radius: 0 24px 24px 0;
   margin-right: 16px;
+  min-height: 48px;
+  transition: all 0.3s ease;
 }
 
 .el-menu-item:hover, .el-menu-item.is-active {
@@ -155,7 +244,7 @@ const logout = () => {
   color: #FFDDEE !important;
 }
 
-.el-menu-item i {
+.el-menu-item .el-icon {
   color: white;
   margin-right: 8px;
   font-size: 18px;
@@ -171,6 +260,12 @@ const logout = () => {
   color: white !important;
   opacity: 0.8;
   transition: opacity 0.3s;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .logout-btn:hover {
@@ -229,31 +324,164 @@ const logout = () => {
   margin-bottom: 5px;
 }
 
+/* 平板设备适配 */
+@media (max-width: 1024px) {
+  .admin-header {
+    padding: 0 15px;
+  }
+
+  .admin-main {
+    padding: 15px;
+  }
+}
+
+/* 移动端适配 */
 @media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .mobile-overlay {
+    display: block;
+  }
+
   .sidebar {
-    width: 64px !important;
-    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: -200px;
+    height: 100vh;
+    z-index: 1000;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 200px !important;
   }
 
-  .logo {
-    width: 40px;
-    height: 40px;
+  .sidebar.mobile-sidebar-open {
+    left: 0;
   }
 
-  .el-menu-item span {
-    display: none;
+  .main-container {
+    width: 100%;
+    margin-left: 0;
   }
 
   .admin-header {
-    padding: 0 10px;
+    padding: 0 60px 0 20px;
   }
 
   .welcome-text {
     display: none;
   }
+
+  .breadcrumb-container {
+    font-size: 14px;
+  }
+
+  .admin-main {
+    padding: 15px;
+  }
+
+  .admin-footer {
+    font-size: 10px;
+    height: 50px !important;
+  }
+
+  .logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .logo-container {
+    padding: 15px 0;
+  }
+
+  .el-menu-item {
+    font-size: 15px;
+    margin-right: 12px;
+  }
 }
 
-/* dark mode */
+/* 超小屏幕适配 */
+@media (max-width: 480px) {
+  .mobile-menu-btn {
+    top: 12px;
+    left: 12px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .admin-header {
+    padding: 0 50px 0 15px;
+    height: 50px !important;
+  }
+
+  .admin-main {
+    padding: 10px;
+    min-height: calc(100vh - 100px);
+  }
+
+  .breadcrumb-container {
+    font-size: 12px;
+  }
+
+  .sidebar {
+    width: 180px !important;
+    left: -180px;
+  }
+
+  .sidebar.mobile-sidebar-open {
+    left: 0;
+  }
+
+  .copyright, .disclaimer {
+    font-size: 9px;
+  }
+
+  .admin-footer {
+    height: 45px !important;
+    padding: 8px 0 !important;
+  }
+
+  .logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .logo-container {
+    padding: 12px 0;
+  }
+
+  .el-menu-item {
+    font-size: 14px;
+    min-height: 42px;
+  }
+}
+
+/* 横屏模式适配 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .sidebar {
+    width: 160px !important;
+    left: -160px;
+  }
+
+  .sidebar.mobile-sidebar-open {
+    left: 0;
+  }
+
+  .logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .logo-container {
+    padding: 10px 0;
+  }
+
+  .admin-main {
+    padding: 10px;
+  }
+}
+
+/* 深色模式支持
 @media (prefers-color-scheme: dark) {
   .admin-layout {
     background-color: #121212;
@@ -280,6 +508,55 @@ const logout = () => {
     background-color: #1e1e1e;
     color: #777;
     border-top: 1px solid #333;
+  }
+
+  .mobile-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .mobile-menu-btn {
+    background: #CC1155;
+  }
+
+  .mobile-menu-btn:hover {
+    background: #BB1144;
+  }
+}
+*/
+/* 高分辨率屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .logo {
+    image-rendering: crisp-edges;
+  }
+
+  .mobile-menu-btn {
+    box-shadow: 0 2px 8px rgba(255, 51, 119, 0.4);
+  }
+}
+
+/* 无障碍支持 */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .mobile-overlay,
+  .mobile-menu-btn,
+  .el-menu-item {
+    transition: none;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .el-menu-item {
+    min-height: 52px;
+  }
+
+  .logout-btn {
+    min-height: 48px;
+  }
+
+  .mobile-menu-btn {
+    width: 44px;
+    height: 44px;
   }
 }
 </style>

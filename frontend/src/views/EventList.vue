@@ -1,42 +1,76 @@
 <template>
   <el-container>
     <el-main>
-      <el-row justify="center">
-        <el-col :span="4">
-          <el-button plain @click="dialogFormVisible = true">
-            添加活动
+      <!-- 顶部操作区域 -->
+      <div class="top-section">
+        <div class="page-header">
+          <h1 class="page-title">活动管理</h1>
+          <p class="page-subtitle">管理所有活动和图片处理</p>
+        </div>
+
+        <div class="action-buttons">
+          <el-button
+              type="primary"
+              :icon="Plus"
+              @click="dialogFormVisible = true"
+              class="add-button"
+          >
+            <span class="button-text">添加活动</span>
           </el-button>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
 
       <!-- 添加活动表单对话框 -->
-      <el-dialog v-model="dialogFormVisible" title="添加活动" width="30vh">
-        <el-form @submit.prevent>
+      <el-dialog
+          v-model="dialogFormVisible"
+          title="添加活动"
+          :width="dialogWidth"
+          :fullscreen="isMobile"
+          class="add-dialog"
+      >
+        <el-form @submit.prevent label-position="top" class="dialog-form">
           <el-form-item label="event_id">
-            <el-input v-model="form.event_id" />
+            <el-input v-model="form.event_id" placeholder="请输入活动 ID" />
           </el-form-item>
           <el-form-item label="活动名称">
-            <el-input v-model="form.description" />
+            <el-input v-model="form.description" placeholder="请输入活动名称" />
           </el-form-item>
           <el-form-item label="活动日期">
             <el-date-picker
                 v-model="form.event_date"
                 type="date"
                 placeholder="选择日期"
+                style="width: 100%"
             />
           </el-form-item>
           <el-form-item label="token">
-            <el-input v-model="form.token" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="addEvent" :loading="addLoading">Create</el-button>
-            <el-button @click="dialogFormVisible = false">Cancel</el-button>
+            <el-input v-model="form.token" placeholder="请输入访问令牌" />
           </el-form-item>
         </el-form>
+
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="dialogFormVisible = false" class="cancel-btn">取消</el-button>
+            <el-button
+                type="primary"
+                @click="addEvent"
+                :loading="addLoading"
+                class="confirm-btn"
+            >
+              {{ addLoading ? '创建中...' : '创建' }}
+            </el-button>
+          </div>
+        </template>
       </el-dialog>
 
       <!-- 上传图片对话框 -->
-      <el-dialog v-model="uploadDialogVisible" title="上传活动图片" width="500px">
+      <el-dialog
+          v-model="uploadDialogVisible"
+          title="上传活动图片"
+          :width="dialogWidth"
+          :fullscreen="isMobile"
+          class="upload-dialog"
+      >
         <div class="upload-container">
           <el-upload
               class="upload-dragger"
@@ -46,7 +80,7 @@
               :on-change="handleFileChange"
               :file-list="fileList"
           >
-            <el-icon class="el-icon--upload"><i class="el-icon-upload"></i></el-icon>
+            <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
             <div class="el-upload__text">
               拖拽图片到此处，或 <em>点击上传</em>
             </div>
@@ -57,11 +91,6 @@
             </template>
           </el-upload>
 
-          <div class="upload-actions">
-            <el-button type="primary" @click="submitUpload" :loading="uploadLoading">上传并处理</el-button>
-            <el-button @click="uploadDialogVisible = false">取消</el-button>
-          </div>
-
           <div v-if="uploadStatus" class="upload-status">
             <el-alert
                 :title="uploadStatus.message"
@@ -71,54 +100,162 @@
             />
           </div>
         </div>
+
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="uploadDialogVisible = false" class="cancel-btn">取消</el-button>
+            <el-button
+                type="primary"
+                @click="submitUpload"
+                :loading="uploadLoading"
+                class="confirm-btn"
+            >
+              {{ uploadLoading ? '上传中...' : '上传并处理' }}
+            </el-button>
+          </div>
+        </template>
       </el-dialog>
 
-      <el-row justify="center">
-        <el-col :span="24">
-          <el-table :data="eventList" style="width: 100%" stripe v-loading="loading">
-            <el-table-column prop="event_id" label="event_id" width="150" />
-            <el-table-column prop="description" label="description" width="200" />
-            <el-table-column prop="event_date" label="event_date" width="150" />
+      <!-- 活动列表 -->
+      <div class="table-section">
+        <!-- 桌面端表格 -->
+        <el-table
+            :data="eventList"
+            style="width: 100%"
+            stripe
+            v-loading="loading"
+            class="desktop-table"
+            :class="{ 'mobile-hidden': isMobile }"
+        >
+          <el-table-column prop="event_id" label="event_id" width="150" />
+          <el-table-column prop="description" label="description" width="200" />
+          <el-table-column prop="event_date" label="event_date" width="150" />
 
-            <el-table-column prop="isOpen" label="开启采集" width="100">
-              <template #default="scope">
-                <el-switch v-model="scope.row.is_open"
-                           @change="(val) => updateEventStatus(scope.row.event_id, val)"
-                />
-              </template>
-            </el-table-column>
+          <el-table-column prop="isOpen" label="开启采集" width="100">
+            <template #default="scope">
+              <el-switch
+                  v-model="scope.row.is_open"
+                  @change="(val) => updateEventStatus(scope.row.event_id, val)"
+              />
+            </template>
+          </el-table-column>
 
-            <el-table-column label="操作" min-width="400" fixed="right">
-              <template #default="scope">
-                <el-button type="primary" @click="handleEventView(scope.row.event_id)">
+          <el-table-column label="操作" min-width="400" fixed="right">
+            <template #default="scope">
+              <div class="table-actions">
+                <el-button type="primary" @click="handleEventView(scope.row.event_id)" size="small">
                   查看活动
                 </el-button>
-                <el-button type="primary" @click="handleEditPic(scope.row.event_id)">
+                <el-button type="primary" @click="handleEditPic(scope.row.event_id)" size="small">
                   生成图片
                 </el-button>
-                <el-button type="success" @click="showUploadDialog(scope.row.event_id)">
+                <el-button type="success" @click="showUploadDialog(scope.row.event_id)" size="small">
                   上传活动图片
                 </el-button>
-                <el-popconfirm title="确定要删除这一项吗？"
-                               @confirm="deleteEvent(scope.row.event_id)">
+                <el-popconfirm
+                    title="确定要删除这一项吗？"
+                    @confirm="deleteEvent(scope.row.event_id)"
+                >
                   <template #reference>
-                    <el-button type="danger">删除</el-button>
+                    <el-button type="danger" size="small">删除</el-button>
                   </template>
                 </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-col>
-      </el-row>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 移动端卡片列表 -->
+        <div class="mobile-cards" :class="{ 'mobile-visible': isMobile }" v-loading="loading">
+          <el-card
+              v-for="event in eventList"
+              :key="event.event_id"
+              class="event-card"
+              shadow="hover"
+          >
+            <template #header>
+              <div class="card-header">
+                <div class="event-info">
+                  <h3 class="event-title">{{ event.description }}</h3>
+                  <div class="event-meta">
+                    <el-tag size="small" type="info">ID: {{ event.event_id }}</el-tag>
+                    <span class="event-date">{{ event.event_date }}</span>
+                  </div>
+                </div>
+                <div class="event-status">
+                  <el-switch
+                      v-model="event.is_open"
+                      @change="(val) => updateEventStatus(event.event_id, val)"
+                      :active-text="event.is_open ? '开放' : '关闭'"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <div class="card-actions">
+              <div class="action-row">
+                <el-button
+                    type="primary"
+                    @click="handleEventView(event.event_id)"
+                    :icon="View"
+                    class="action-button"
+                >
+                  查看活动
+                </el-button>
+                <el-button
+                    type="primary"
+                    @click="handleEditPic(event.event_id)"
+                    :icon="Edit"
+                    class="action-button"
+                >
+                  生成图片
+                </el-button>
+              </div>
+              <div class="action-row">
+                <el-button
+                    type="success"
+                    @click="showUploadDialog(event.event_id)"
+                    :icon="UploadFilled"
+                    class="action-button"
+                >
+                  上传活动图片
+                </el-button>
+                <el-popconfirm
+                    title="确定要删除这一项吗？"
+                    @confirm="deleteEvent(event.event_id)"
+                >
+                  <template #reference>
+                    <el-button
+                        type="danger"
+                        :icon="Delete"
+                        class="action-button"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+            </div>
+          </el-card>
+
+          <!-- 空状态 -->
+          <div v-if="!loading && eventList.length === 0" class="empty-state">
+            <el-empty description="暂无活动数据">
+              <el-button type="primary" @click="dialogFormVisible = true">创建第一个活动</el-button>
+            </el-empty>
+          </div>
+        </div>
+      </div>
     </el-main>
   </el-container>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
+import { Plus, UploadFilled, View, Edit, Delete } from '@element-plus/icons-vue';
 
 // 状态变量定义
 const dialogFormVisible = ref(false);
@@ -135,12 +272,32 @@ const currentEventId = ref(null);
 const uploadStatus = ref(null);
 const statusCheckInterval = ref(null);
 
+// 响应式相关
+const windowWidth = ref(window.innerWidth);
+const isMobile = computed(() => windowWidth.value < 768);
+const dialogWidth = computed(() => isMobile.value ? '95%' : '500px');
+
 // 表单数据
 const form = reactive({
   event_id: '',
   description: '',
   event_date: '',
   token: '',
+});
+
+// 监听窗口大小变化
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+  fetchEvent();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+  clearInterval(statusCheckInterval.value);
 });
 
 // 跳转到图片编辑页面
@@ -350,26 +507,180 @@ const checkProcessStatus = () => {
     }
   }, 2000); // 每2秒检查一次
 };
-
-// 初始化加载
-onMounted(() => {
-  fetchEvent();
-});
-
-// 组件卸载时清理定时器
-onUnmounted(() => {
-  clearInterval(statusCheckInterval.value);
-});
 </script>
 
 <style scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-.el-row:last-child {
-  margin-bottom: 0;
+/* 基础布局 */
+.el-main {
+  padding: 20px;
+  background-color: #f5f7f9;
+  min-height: calc(100vh - 140px);
 }
 
+/* 顶部区域 */
+.top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.page-header h1.page-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.page-subtitle {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.action-buttons {
+  flex-shrink: 0;
+}
+
+.add-button {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 表格区域 */
+.table-section {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.desktop-table {
+  width: 100%;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 移动端卡片 */
+.mobile-cards {
+  display: none;
+  padding: 16px;
+  gap: 16px;
+  flex-direction: column;
+}
+
+.mobile-cards.mobile-visible {
+  display: flex;
+}
+
+.desktop-table.mobile-hidden {
+  display: none;
+}
+
+.event-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 51, 119, 0.15);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.event-info {
+  flex: 1;
+}
+
+.event-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-date {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.event-status {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.action-button {
+  flex: 1;
+  height: 44px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* 对话框样式 */
+.add-dialog, .upload-dialog {
+  border-radius: 12px;
+}
+
+.dialog-form {
+  padding: 0;
+}
+
+.dialog-form .el-form-item {
+  margin-bottom: 20px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn, .confirm-btn {
+  height: 44px;
+  padding: 0 24px;
+  font-size: 16px;
+}
+
+/* 上传组件 */
 .upload-container {
   display: flex;
   flex-direction: column;
@@ -380,18 +691,17 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.upload-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
 .upload-status {
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
-/* 确保与现有主题一致 */
+/* 空状态 */
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+/* Element Plus 样式覆盖 */
 :deep(.el-button--primary) {
   background-color: #FF3377;
   border-color: #FF3377;
@@ -410,5 +720,253 @@ onUnmounted(() => {
 :deep(.el-button--success:hover) {
   background-color: #45a049;
   border-color: #45a049;
+}
+
+:deep(.el-card__header) {
+  padding: 16px 20px;
+  background: rgba(255, 51, 119, 0.02);
+  border-bottom: 1px solid rgba(255, 51, 119, 0.1);
+}
+
+:deep(.el-card__body) {
+  padding: 20px;
+}
+
+:deep(.el-switch__label) {
+  font-size: 12px;
+}
+
+/* 平板适配 */
+@media (max-width: 1024px) {
+  .el-main {
+    padding: 16px;
+  }
+
+  .top-section {
+    padding: 16px;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-actions .el-button {
+    margin-bottom: 4px;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .el-main {
+    padding: 12px;
+  }
+
+  .top-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .action-buttons {
+    width: 100%;
+  }
+
+  .add-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .button-text {
+    display: inline;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-cards {
+    display: flex;
+    padding: 0;
+  }
+
+  .page-header h1.page-title {
+    font-size: 1.5rem;
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .cancel-btn, .confirm-btn {
+    width: 100%;
+  }
+
+  :deep(.el-dialog) {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 20px;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  :deep(.el-input__inner) {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  :deep(.el-date-editor.el-input) {
+    height: 44px;
+  }
+
+  :deep(.el-upload-dragger) {
+    height: 140px;
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-width: 480px) {
+  .el-main {
+    padding: 8px;
+  }
+
+  .top-section {
+    padding: 12px;
+  }
+
+  .page-header h1.page-title {
+    font-size: 1.3rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .add-button {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .event-card {
+    margin-bottom: 12px;
+  }
+
+  .event-title {
+    font-size: 1.1rem;
+  }
+
+  .action-button {
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .cancel-btn, .confirm-btn {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  :deep(.el-card__header) {
+    padding: 12px 16px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px;
+  }
+}
+
+/* 横屏模式适配 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .top-section {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .action-buttons {
+    width: auto;
+  }
+
+  .add-button {
+    width: auto;
+  }
+
+  .action-row {
+    flex-direction: row;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .add-button,
+  .action-button,
+  .cancel-btn,
+  .confirm-btn {
+    min-height: 48px;
+  }
+
+  :deep(.el-switch) {
+    transform: scale(1.2);
+  }
+
+  :deep(.el-button) {
+    min-height: 44px;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .el-main {
+    background-color: #121212;
+  }
+
+  .top-section,
+  .table-section {
+    background: #1e1e1e;
+    color: #e4e7ed;
+  }
+
+  .page-header h1.page-title {
+    color: #e4e7ed;
+  }
+
+  .page-subtitle {
+    color: #909399;
+  }
+
+  .event-title {
+    color: #e4e7ed;
+  }
+
+  .event-date {
+    color: #909399;
+  }
+
+  .event-card {
+    background: #1e1e1e;
+    border-color: #404040;
+  }
+
+  :deep(.el-card__header) {
+    background: rgba(255, 51, 119, 0.05);
+    border-bottom-color: rgba(255, 51, 119, 0.2);
+  }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  .event-card {
+    transition: none;
+  }
+
+  .event-card:hover {
+    transform: none;
+  }
 }
 </style>
