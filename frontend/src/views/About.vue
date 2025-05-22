@@ -81,7 +81,7 @@
               </div>
               <div class="tech-item">
                 <span class="tech-label">图像处理</span>
-                <span class="tech-value">TBD</span>
+                <span class="tech-value">Fabric.js</span>
               </div>
             </div>
           </div>
