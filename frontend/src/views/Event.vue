@@ -159,9 +159,10 @@ const isAvatarSelected = ref(false);
 const isUploadCompleted = ref(false);
 
 const stepTexts = [
-  '请在下方选择您的大头位置',
-  '请上传您的头像',
-  '完成！'
+    '请在下方选择您的大头位置',
+    '请上传您的头像',
+    '请再确认一次喵~',
+    '完成！'
 ];
 
 const handleFaceSelected = (face, url) => {
@@ -282,11 +283,30 @@ const uploadQQAvatar = async () => {
 </script>
 
 <style scoped>
+:root {
+  --bg-color: linear-gradient(135deg, #ffecf2 0%, #fff5fa 100%);
+  --card-bg: #ffffff;
+  --text-color: #333;
+  --border-color: #eee;
+  --primary-color: #FF3377;
+  --step-text-color: #333;
+}
+
+.dark {
+  --bg-color: #121212;
+  --card-bg: #ead8d8;
+  --text-color: #f5f5f5;
+  --border-color: #444;
+  --primary-color: #ff6699;
+  --step-text-color: #ffffff;
+}
+
+
 .event-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffecf2 0%, #fff5fa 100%);
+  background: var(--bg-color);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -325,7 +345,8 @@ const uploadQQAvatar = async () => {
 }
 
 .content-card {
-  background: white;
+  background: var(--card-bg);
+  border-color: var(--border-color);
   border-radius: 12px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
   width: 100%;
@@ -364,7 +385,7 @@ const uploadQQAvatar = async () => {
 
 .step-text {
   font-size: 1.1rem;
-  color: #333;
+  color: var(--step-text-color);
 }
 
 .step-content {
@@ -523,6 +544,10 @@ const uploadQQAvatar = async () => {
 :deep(.el-step__head.is-process) {
   color: white;
   border-color: white;
+}
+
+:deep(.el-result__title p) {
+  color: var(--step-text-color)
 }
 
 @media (max-width: 768px) {
