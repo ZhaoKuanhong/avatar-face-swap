@@ -19,6 +19,7 @@ axios.defaults.baseURL = `${import.meta.env.VITE_API_BASE_URL}`;
 
 const PublicRoutes = [
     { path: '/', redirect: '/event' },
+    { path: '/about', component: () => import('@/views/About.vue'), name: 'About' },
     {
         path: '/event/admin',
         component:  () => import('@/views/Admin.vue'),

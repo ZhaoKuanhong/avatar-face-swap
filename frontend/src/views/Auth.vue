@@ -32,6 +32,12 @@
       <span class="note note-2">♫</span>
       <span class="note note-3">♬</span>
     </div>
+    <div class="about-link">
+      <button @click="goToAbout" class="about-btn">
+        <i class="fas fa-info-circle"></i>
+        关于我们
+      </button>
+    </div>
     <footer class="footer">
       Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club
     </footer>
@@ -73,12 +79,17 @@ export default {
       }
     };
 
+    const goToAbout = () => {
+      router.push('/about');
+    };
+
     return {
       router,
       token,
       loading,
       errorMessage,
-      verifyToken
+      verifyToken,
+      goToAbout,
     };
   }
 };
@@ -328,6 +339,34 @@ body {
   font-size: 14px;
   text-align: center;
   z-index: 10;
+}
+
+.about-link {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 15;
+}
+
+.about-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.about-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.about-btn i {
+  margin-right: 6px;
 }
 
 @keyframes float {
