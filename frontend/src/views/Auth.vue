@@ -34,7 +34,7 @@
     </div>
     <div class="about-link">
       <button @click="goToAbout" class="about-btn">
-        <i class="fas fa-info-circle"></i>
+        <InfoFilled />
         关于我们
       </button>
     </div>
@@ -49,8 +49,10 @@
 import { useRouter } from 'vue-router';
 import { apiClient } from "@/api/axios.js";
 import { ref } from 'vue';
+import {InfoFilled} from "@element-plus/icons-vue";
 
 export default {
+  components: {InfoFilled},
   setup() {
     const router = useRouter();
     const token = ref('');
@@ -349,8 +351,8 @@ body {
 }
 
 .about-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(45deg, rgba(255, 51, 119, 0.8), rgba(255, 102, 153, 0.8));
+  border: 1px solid rgba(255, 51, 119, 0.6);
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
@@ -358,15 +360,27 @@ body {
   font-size: 14px;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 51, 119, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.about-btn svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .about-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.about-btn i {
-  margin-right: 6px;
+  background: linear-gradient(45deg, #FF3377, #ff6699);
+  border-color: #FF3377;
+  box-shadow: 0 6px 20px rgba(255, 51, 119, 0.4);
+  transform: translateY(-3px);
 }
 
 @keyframes float {
