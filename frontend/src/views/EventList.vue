@@ -90,6 +90,9 @@
 
             <el-table-column label="操作" width="340">
               <template #default="scope">
+                <el-button type="primary" @click="handleEventView(scope.row.event_id)">
+                  查看活动
+                </el-button>
                 <el-button type="primary" @click="handleEditPic(scope.row.event_id)">
                   生成图片
                 </el-button>
@@ -142,8 +145,12 @@ const form = reactive({
 
 // 跳转到图片编辑页面
 const handleEditPic = (event_id) => {
-  router.push(`/event/admin/list/${event_id}`);
+  router.push(`/event/admin/list/${event_id}/export`);
 };
+
+const handleEventView = (event_id) => {
+  router.push(`/event/admin/list/${event_id}/view`)
+}
 
 // 获取活动列表数据
 const fetchEvent = async () => {

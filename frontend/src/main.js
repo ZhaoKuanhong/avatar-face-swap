@@ -37,9 +37,14 @@ const PublicRoutes = [
                 },
             },
             {
-                path: 'list/:event_id',
-                name: 'EventSetting',
+                path: 'list/:event_id/edit',
+                name: 'EventPicExport',
                 component: () => import('@/components/PicEdit.vue')
+            },
+            {
+                path: 'list/:event_id/view',
+                name: 'EventView',
+                component: () => import('@/components/EventView.vue')
             },
             {
                 path: 'logs',
