@@ -286,6 +286,72 @@ def get_event_faces_info(event_id):
         return jsonify(error=str(e)), 500
 
 
+@app.route('/api/events/<int:event_id>/faces/<face_filename>', methods=['DELETE'])
+@requires_admin_permission
+def delete_face(event_id, face_filename):
+    """删除误识别的人脸"""
+    try:
+        import os
+        import json
+
+        event_dir = os.path.join('event', str(event_id))
+        cropped_faces_dir = os.path.join(event_dir, CROPPED_FACES_FOLDER)
+        upload_dir = os.path.join(event_dir, 'upload')
+        faces_info_path = os.path.join(event_dir, 'faces_info.json')
+
+        # 检查人脸文件是否存在
+        face_path = os.path.join(cropped_faces_dir, face_filename)
+        if not os.path.exists(face_path):
+            return jsonify(error=f'人脸文件 {face_filename} 不存在'), 404
+
+        os.remove(face_path)
+
+        base_filename = os.path.splitext(face_filename)[0]
+
+        # 删除用户上传的头像
+        for ext in ['jpg', 'jpeg', 'png']:
+            upload_file = os.path.join(upload_dir, f"{base_filename}.{ext}")
+            if os.path.exists(upload_file):
+                os.remove(upload_file)
+                break
+
+        # 删除对应的JSON信息文件
+        json_file = os.path.join(upload_dir, f"{base_filename}.json")
+        if os.path.exists(json_file):
+            os.remove(json_file)
+
+        # 更新faces_info.json，移除对应的人脸信息
+        if os.path.exists(faces_info_path):
+            with open(faces_info_path, 'r', encoding='utf-8') as f:
+                faces_info = json.load(f)
+
+            # 从faces数组中移除对应的人脸信息
+            if 'faces' in faces_info:
+                faces_info['faces'] = [
+                    face for face in faces_info['faces']
+                    if face.get('filename') != face_filename
+                ]
+
+            with open(faces_info_path, 'w', encoding='utf-8') as f:
+                json.dump(faces_info, f, indent=4, ensure_ascii=False)
+
+        # 记录日志
+        log_activity(
+            level="WARNING",
+            module="活动管理",
+            action="删除误识别人脸",
+            user_id="admin",
+            event_id=str(event_id),
+            details={"deleted_face": face_filename}
+        )
+
+        return jsonify(message=f'人脸 {face_filename} 已成功删除'), 200
+
+    except Exception as e:
+        print(f"删除人脸失败: {e}")
+        return jsonify(error=f'删除人脸失败: {str(e)}'), 500
+
+
 @app.route('/api/events/<event_id>/faces/<filename>')
 @requires_event_permission
 def get_event_face_image(event_id, filename):

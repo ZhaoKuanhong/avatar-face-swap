@@ -82,8 +82,50 @@
                 <span class="face-number">{{ `人脸 ${index + 1}` }}</span>
                 <span v-if="faceNicknameMap[face]" class="face-nickname">{{ faceNicknameMap[face] }}</span>
               </div>
-              <el-tag size="small" type="info">{{ face }}</el-tag>
+              <div class="face-actions">
+                <el-tag size="small" type="info">{{ face }}</el-tag>
+                <el-button
+                    type="danger"
+                    size="small"
+                    @click="showDeleteDialog(face)"
+                    class="delete-btn"
+                    :icon="ElIconDelete"
+                >
+                  删除
+                </el-button>
+              </div>
             </div>
+            <el-dialog
+                v-model="deleteDialogVisible"
+                title="删除人脸确认"
+                width="400px"
+                center
+            >
+              <div class="delete-dialog-content">
+                <div class="warning-icon">
+                  <i class="el-icon-warning-outline"></i>
+                </div>
+                <p>确定要删除这个人脸吗？</p>
+                <p class="warning-text">
+                  <strong>注意：</strong>删除后将同时移除相关的用户上传数据，此操作不可恢复！
+                </p>
+                <div v-if="faceToDelete" class="face-preview">
+                  <img :src="faceUrlMap[faceToDelete]" :alt="faceToDelete" />
+                  <span>{{ faceToDelete }}</span>
+                </div>
+              </div>
+
+              <template #footer>
+                <el-button @click="cancelDelete">取消</el-button>
+                <el-button
+                    type="danger"
+                    @click="confirmDelete"
+                    :loading="deleteLoading"
+                >
+                  确认删除
+                </el-button>
+              </template>
+            </el-dialog>
           </template>
 
           <div class="face-content">
@@ -192,6 +234,7 @@
 import { apiClient } from '@/api/axios';
 import { useRoute } from "vue-router";
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const route = useRoute();
 const eventId = route.params.event_id;
@@ -202,6 +245,9 @@ const faceQQMap = ref({});
 const faceNicknameMap = ref({});
 const loading = ref(false);
 const eventPicUrl = ref(null);
+const deleteLoading = ref(false);
+const deleteDialogVisible = ref(false);
+const faceToDelete = ref(null);
 
 // 计算已上传的数量
 const uploadedCount = computed(() => {
@@ -286,6 +332,51 @@ async function fetchQQNickname(face, qqNumber) {
     faceNicknameMap.value[face] = `QQ用户${qqNumber}`;
   }
 }
+
+const showDeleteDialog = (face) => {
+  faceToDelete.value = face;
+  deleteDialogVisible.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!faceToDelete.value) return;
+
+  deleteLoading.value = true;
+  try {
+    await apiClient.delete(`/events/${eventId}/faces/${faceToDelete.value}`);
+
+    // 从本地数据中移除
+    const index = faces.value.indexOf(faceToDelete.value);
+    if (index > -1) {
+      faces.value.splice(index, 1);
+    }
+
+    // 清理URL
+    if (faceUrlMap.value[faceToDelete.value]) {
+      URL.revokeObjectURL(faceUrlMap.value[faceToDelete.value]);
+      delete faceUrlMap.value[faceToDelete.value];
+    }
+    if (avatarUrlMap.value[faceToDelete.value]) {
+      URL.revokeObjectURL(avatarUrlMap.value[faceToDelete.value]);
+      delete avatarUrlMap.value[faceToDelete.value];
+    }
+
+    ElMessage.success('人脸删除成功');
+    deleteDialogVisible.value = false;
+    faceToDelete.value = null;
+
+  } catch (error) {
+    console.error('删除人脸失败:', error);
+    ElMessage.error('删除人脸失败，请重试');
+  } finally {
+    deleteLoading.value = false;
+  }
+};
+
+const cancelDelete = () => {
+  deleteDialogVisible.value = false;
+  faceToDelete.value = null;
+};
 
 onMounted(() => {
   fetchEventPic();
@@ -657,6 +748,64 @@ onBeforeUnmount(() => {
   width: 1px;
   height: 40px;
   background: #eee;
+}
+
+.face-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.face-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* 删除对话框样式 */
+.delete-dialog-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  font-size: 3rem;
+  color: #e6a23c;
+  margin-bottom: 15px;
+}
+
+.warning-text {
+  color: #e6a23c;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.face-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.face-preview img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.face-preview span {
+  font-size: 0.9rem;
+  color: #666;
 }
 
 /* 动画效果 */
