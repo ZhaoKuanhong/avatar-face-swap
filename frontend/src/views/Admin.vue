@@ -103,6 +103,11 @@ const logout = () => {
   display: flex;
 }
 
+.el-main {
+    background-color: #f5f7f9;
+    height: calc(100vh - 8rem);
+}
+
 .sidebar {
   background: linear-gradient(180deg, #FF3377 0%, #FF3366 100%);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
