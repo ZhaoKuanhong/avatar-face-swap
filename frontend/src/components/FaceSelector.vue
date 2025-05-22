@@ -41,6 +41,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/api/axios';
 import {  defineProps, defineEmits } from 'vue';
+import pLimit from 'p-limit';
 
 const props = defineProps({
   eventId: {
@@ -70,7 +71,19 @@ async function fetchFaces() {
   try {
     const response = await apiClient.get(`/events/${props.eventId}/faces`);
     faces.value = response.data.faces;
-    await Promise.all(faces.value.map(loadFaceImage));
+
+    if (faces.value.length === 0) {
+      return;
+    }
+
+    const limit = pLimit(5);
+
+    const loadTasks = faces.value.map(face =>
+        limit(() => loadFaceImage(face))
+    );
+
+    await Promise.all(loadTasks);
+
   } catch (error) {
     console.error('获取人脸列表失败:', error);
     faces.value = [];

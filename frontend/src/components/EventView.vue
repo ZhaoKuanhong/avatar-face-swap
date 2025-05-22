@@ -159,7 +159,7 @@
 
               <!-- 箭头指示 -->
               <div class="arrow-indicator">
-                <i class="el-icon-right"></i>
+                <Right />
               </div>
 
               <!-- 用户上传头像 -->
@@ -235,6 +235,8 @@ import { apiClient } from '@/api/axios';
 import { useRoute } from "vue-router";
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import {Right} from "@element-plus/icons-vue";
+import pLimit from 'p-limit';
 
 const route = useRoute();
 const eventId = route.params.event_id;
@@ -270,9 +272,31 @@ async function fetchFaces() {
   try {
     const response = await apiClient.get(`/events/${eventId}/faces`);
     faces.value = response.data.faces;
-    await Promise.all(faces.value.map(loadFaceImage));
-    await Promise.all(faces.value.map(loadAvatarImage));
-    await Promise.all(faces.value.map(loadFaceQQInfo));
+
+    if (faces.value.length === 0) {
+      return;
+    }
+
+    const limit = pLimit(5);
+
+    const faceImageTasks = faces.value.map(face =>
+        limit(() => loadFaceImage(face))
+    );
+
+    const avatarImageTasks = faces.value.map(face =>
+        limit(() => loadAvatarImage(face))
+    );
+
+    const qqInfoTasks = faces.value.map(face =>
+        limit(() => loadFaceQQInfo(face))
+    );
+
+    await Promise.all([
+      Promise.all(faceImageTasks),
+      Promise.all(avatarImageTasks),
+      Promise.all(qqInfoTasks)
+    ]);
+
   } catch (error) {
     console.error('获取人脸列表失败:', error);
     faces.value = [];
