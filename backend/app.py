@@ -169,6 +169,76 @@ def delete_event(event_id):
         return jsonify(error=f"删除事件时发生错误: {str(e)}"), 500
 
 
+@app.route('/api/events/<event_id>/faces/<face_filename>/info')
+@requires_event_permission
+def get_face_qq_info(event_id, face_filename):
+    """获取人脸对应的QQ号码信息"""
+    try:
+        # 构建JSON文件路径
+        base_filename = os.path.splitext(face_filename)[0]
+        json_filename = f"{base_filename}.json"
+        json_path = os.path.join('event', event_id, 'upload', json_filename)
+
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return jsonify({
+                    'qq_number': data.get('qq_number'),
+                    'filename': data.get('filename')
+                })
+        else:
+            return jsonify({'qq_number': None, 'filename': face_filename})
+    except Exception as e:
+        return jsonify({'error': str(e), 'qq_number': None}), 500
+
+
+@app.route('/api/events/<event_id>/qq-nickname/<qq_number>')
+@requires_event_permission
+def get_qq_nickname(event_id, qq_number):
+    """获取QQ昵称的代理接口"""
+    try:
+        import requests
+        import json
+
+        # Tips: 先用这个，不知道啥时候失效
+        url = f"https://fxinz.cn/api/qq-query.php?qq={qq_number}"
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        response = requests.get(url, headers=headers, timeout=10)
+        content = response.content.decode('utf-8')
+        data = json.loads(content)
+
+        if data.get('code') == '200' and 'data' in data:
+            nickname = data['data'].get('name')
+
+            if nickname and nickname.strip():
+                return jsonify({
+                    'nickname': nickname,
+                    'qq_number': qq_number,
+                    'success': True
+                })
+
+        return jsonify({
+            'nickname': f'QQ用户{qq_number}',
+            'qq_number': qq_number,
+            'success': False
+        })
+
+    except Exception as e:
+        print(f"获取QQ昵称失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'nickname': f'QQ用户{qq_number}',
+            'qq_number': qq_number,
+            'success': False,
+            'error': str(e)
+        })
+
+
 @app.route('/api/events/<event_id>/pic', methods=['GET'])
 @requires_event_permission
 def get_event_pic(event_id):
@@ -390,6 +460,7 @@ def get_process_status(event_id):
 
     except Exception as e:
         return jsonify(error=f'获取状态失败: {str(e)}'), 500
+
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)

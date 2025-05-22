@@ -88,7 +88,7 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="340">
+            <el-table-column label="操作" min-width="400" fixed="right">
               <template #default="scope">
                 <el-button type="primary" @click="handleEventView(scope.row.event_id)">
                   查看活动
