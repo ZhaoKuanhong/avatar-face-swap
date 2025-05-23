@@ -1,5 +1,5 @@
 <div align="center">
-  <h2><b> 团建合影大头自动覆盖 </b></h2>
+  <h1><b> 团建合影大头自动覆盖 </b></h1>
 </div>
 
 
@@ -26,10 +26,13 @@
 2.`backend/lib/common/constants.py` `SECRET_KEY` `ADMIN_PASSWORD`
 
 ## How to use
+1. 使用`ADMIN_PASSWORD`进入后台，创建活动
+2. 在活动列表选择“上传图片”，等待后端自动切分
+3. 对于识别错误的人脸，可以进入“查看活动”中删除
 
-1.使用`crop_faces.py`分割输入图片
-
-2.按以下模版组织活动目录
+对于配置稍低的服务器，可以：
+1. 使用`crop_faces.py`分割输入图片
+2. 按以下模版组织活动目录
 ```
 backend/
 └── event/
@@ -41,17 +44,22 @@ backend/
         │   └── ...
         └── upload/
 ```
+
 ## To do
 - [x] 404页面等路由守卫功能
 - [x] 通过后端创建活动文件夹而无需手动创建
 - [x] 更漂亮的UI
-- [ ] 适配或取消黑暗模式
-- [ ] 统一为vue3语法风格
+- [x] 适配~~或取消~~黑暗模式
 
 ## 演示
 登录页面
+
 ![Login.png](img/Login.png)
+
 选择页面
+
 ![Main.png](img/Main.png)
+
 管理页面
+
 ![EventList.png](img/EventList.png)
