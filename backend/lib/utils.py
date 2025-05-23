@@ -139,11 +139,19 @@ def requires_admin_permission(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
+def get_real_ip():
+    if 'CF-Connecting-IP' in request.headers:
+        return request.headers['CF-Connecting-IP']
+    elif 'X-Forwarded-For' in request.headers:
+        return request.headers['X-Forwarded-For'].split(',')[0]
+    else:
+        return request.remote_addr
+
 
 def log_activity(level, module, action, user_id=None, event_id=None, details=None):
     """activity logs"""
     try:
-        ip_address = request.remote_addr if request else None
+        ip_address = get_real_ip if request else None
         details_json = json.dumps(details) if details else None
 
         execute_db('''

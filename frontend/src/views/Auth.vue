@@ -108,7 +108,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  height: 100vh;
   width: 100vw;
   background: url("@/assets/img/bg.jpg") no-repeat center center;
   background-size: cover;
