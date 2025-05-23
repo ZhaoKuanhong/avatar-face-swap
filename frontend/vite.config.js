@@ -17,13 +17,20 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({ importStyle:"sass"})],
     }),
   ],
-  base: '/',
+  base: '/event/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+   css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/assets/element.scss" as *;`,
+      },
     },
   },
 })
