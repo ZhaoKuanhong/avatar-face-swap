@@ -201,7 +201,7 @@ const resetProcess = () => {
   uploadedAvatar.value = null;
   selectedFaceUrl.value = null;
   uploadedAvatarUrl.value = null;
-  currentStep.value = 1;
+  currentStep.value = 0;
 };
 
 const router = useRouter();

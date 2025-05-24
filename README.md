@@ -20,10 +20,10 @@
 * **后端:** Flask (Python)
 * **图像处理 (后端):** dlib, OpenCV (用于人脸识别和裁剪)
 
-## 需要指定的参数
+## 需要指定的环境变量
 1.`frontend/env.production` `VITE_API_BASE_URL`
 
-2.`backend/lib/common/constants.py` `SECRET_KEY` `ADMIN_PASSWORD`
+2.后端： `SECRET_KEY` `ADMIN_PASSWORD`
 
 ## How to use
 1. 使用`ADMIN_PASSWORD`进入后台，创建活动

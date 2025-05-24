@@ -76,7 +76,7 @@ def download_qq_avatar_async(event_id, selected_face, qq_number):
 
         # 下载头像
         qq_avatar_url = f"https://q1.qlogo.cn/g?b=qq&nk={qq_number}&s=640"
-        response = requests.get(qq_avatar_url, stream=True, timeout=5)
+        response = requests.get(qq_avatar_url, stream=True, timeout=5, verify=False)
         response.raise_for_status()
 
         avatar_filename = f"{os.path.splitext(secure_selected_face)[0]}.jpg"
@@ -151,7 +151,7 @@ def get_real_ip():
 def log_activity(level, module, action, user_id=None, event_id=None, details=None):
     """activity logs"""
     try:
-        ip_address = get_real_ip if request else None
+        ip_address = get_real_ip() if request else None
         details_json = json.dumps(details) if details else None
 
         execute_db('''
