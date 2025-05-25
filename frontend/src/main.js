@@ -13,8 +13,8 @@ import NotFound from "@/views/NotFound.vue";
 import { createRouter, createWebHistory } from 'vue-router';
 
 import axios from 'axios';
-import {ElMessage} from "element-plus";
-import {apiClient} from "@/api/axios.js";
+import { ElMessage } from "element-plus";
+import { apiClient } from "@/api/axios.js";
 
 axios.defaults.baseURL = `${import.meta.env.VITE_API_BASE_URL}`;
 

@@ -16,17 +16,17 @@
       <div class="content-card">
         <div class="card-header">
           <div class="step-indicator">
-            <span class="step-number">{{ currentStep }}</span>
-            <span class="step-text">{{ stepTexts[currentStep-1] }}</span>
+            <span class="step-number">{{ currentStep + 1 }}</span>
+            <span class="step-text">{{ stepTexts[currentStep] }}</span>
           </div>
-          <el-button v-if="currentStep > 1" @click="prevStep" plain size="small">
+          <el-button v-if="currentStep > 0" @click="prevStep" plain size="small">
             <i class="el-icon-arrow-left"></i> 返回
           </el-button>
         </div>
 
         <div class="step-content">
           <!-- 第一步：选择大头 -->
-          <div v-show="currentStep === 1" class="step-panel">
+          <div v-show="currentStep === 0" class="step-panel">
             <face-selector
                 :event-id="event_id"
                 @face-selected="handleFaceSelected"
@@ -44,7 +44,7 @@
           </div>
 
           <!-- 第二步：choose头像 -->
-          <div v-show="currentStep === 2" class="step-panel">
+          <div v-show="currentStep === 1" class="step-panel">
             <h3>输入 QQ 号获取头像</h3>
             <el-row :gutter="20">
               <el-col :span="16">
@@ -76,7 +76,7 @@
           </div>
 
           <!-- Step 3: Confirm -->
-          <div v-show="currentStep === 3" class="step-panel confirm-panel">
+          <div v-show="currentStep === 2" class="step-panel confirm-panel">
             <div class="success-icon">
               <i class="el-icon-check"></i>
             </div>
@@ -102,7 +102,7 @@
           </div>
 
           <!-- 第四步：完成 -->
-          <div v-show="currentStep === 4" class="step-panel success-panel">
+          <div v-show="currentStep === 3" class="step-panel success-panel">
             <div class="success-icon">
               <i class="el-icon-check"></i>
             </div>
@@ -154,7 +154,7 @@ const uploadedAvatar = ref(null);
 const selectedFaceUrl = ref(null);
 const uploadedAvatarUrl = ref(null);
 const description = ref(localStorage.getItem('description') || '活动');
-const currentStep = ref(1);
+const currentStep = ref(0);
 const isAvatarSelected = ref(false);
 const isUploadCompleted = ref(false);
 
@@ -185,15 +185,15 @@ const handleAvatarUploaded = (filename, url) => {
 };
 
 const nextStep = () => {
-  if (currentStep.value < 3) currentStep.value++;
+  if (currentStep.value < 2) currentStep.value++;
 };
 
 const prevStep = () => {
-  if (currentStep.value > 1) currentStep.value--;
+  if (currentStep.value > 0) currentStep.value--;
 };
 
 const completeProcess = () => {
-  currentStep.value = 3;
+  currentStep.value = 2;
 };
 
 const resetProcess = () => {
@@ -201,7 +201,7 @@ const resetProcess = () => {
   uploadedAvatar.value = null;
   selectedFaceUrl.value = null;
   uploadedAvatarUrl.value = null;
-  currentStep.value = 1;
+  currentStep.value = 0;
 };
 
 const router = useRouter();
@@ -264,7 +264,7 @@ const uploadQQAvatar = async () => {
     uploadMessage.value = res.data.message;
     uploadedImageUrl.value = qqAvatarUrl.value;
     uploadedFilename.value = res.data.filename;
-    currentStep.value = 4;
+    currentStep.value = 3;
     uploadResult.value = 'success';
     emit('avatar-uploaded', res.data.filename);
   } catch (err) {

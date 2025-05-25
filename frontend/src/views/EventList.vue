@@ -702,15 +702,6 @@ const checkProcessStatus = () => {
 }
 
 /* Element Plus 样式覆盖 */
-:deep(.el-button--primary) {
-  background-color: #FF3377;
-  border-color: #FF3377;
-}
-
-:deep(.el-button--primary:hover) {
-  background-color: #FF1166;
-  border-color: #FF1166;
-}
 
 :deep(.el-button--success) {
   background-color: #4CAF50;

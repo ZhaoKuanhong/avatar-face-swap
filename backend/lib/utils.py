@@ -76,7 +76,7 @@ def download_qq_avatar_async(event_id, selected_face, qq_number):
 
         # 下载头像
         qq_avatar_url = f"https://q1.qlogo.cn/g?b=qq&nk={qq_number}&s=640"
-        response = requests.get(qq_avatar_url, stream=True, timeout=5)
+        response = requests.get(qq_avatar_url, stream=True, timeout=5, verify=False)
         response.raise_for_status()
 
         avatar_filename = f"{os.path.splitext(secure_selected_face)[0]}.jpg"
@@ -139,11 +139,19 @@ def requires_admin_permission(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
+def get_real_ip():
+    if 'CF-Connecting-IP' in request.headers:
+        return request.headers['CF-Connecting-IP']
+    elif 'X-Forwarded-For' in request.headers:
+        return request.headers['X-Forwarded-For'].split(',')[0]
+    else:
+        return request.remote_addr
+
 
 def log_activity(level, module, action, user_id=None, event_id=None, details=None):
     """activity logs"""
     try:
-        ip_address = request.remote_addr if request else None
+        ip_address = get_real_ip() if request else None
         details_json = json.dumps(details) if details else None
 
         execute_db('''

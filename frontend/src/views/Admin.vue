@@ -365,7 +365,7 @@ onUnmounted(() => {
   }
 
   .admin-header {
-    padding: 0 60px 0 20px;
+    padding: 0 60px 0 65px;
   }
 
   .welcome-text {
@@ -410,7 +410,7 @@ onUnmounted(() => {
   }
 
   .admin-header {
-    padding: 0 50px 0 15px;
+    padding: 0 50px 0 65px;
     height: 50px !important;
   }
 
