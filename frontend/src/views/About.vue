@@ -25,7 +25,7 @@
         <el-card class="section-card club-section" shadow="hover">
           <div class="club-intro">
             <div class="club-logo">
-              <img src="../assets/img/fc-logo.png" alt="GDUT BanGDream Fan Club" />
+              <img src="../assets/img/logo.png" alt="GDUT BanGDream Fan Club" />
             </div>
             <div class="club-info">
               <h2 class="club-name">GDUT BanGDream Fan Club</h2>
