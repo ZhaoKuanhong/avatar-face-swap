@@ -45,57 +45,50 @@
   </body>
 </template>
 
-<script>
-import { useRouter } from 'vue-router';
+<script setup>
+import { useRouter, useRoute } from 'vue-router';
 import { apiClient } from "@/api/axios.js";
-import { ref } from 'vue';
-import {InfoFilled} from "@element-plus/icons-vue";
+import { ref, onMounted } from 'vue';
 
-export default {
-  components: {InfoFilled},
-  setup() {
-    const router = useRouter();
-    const token = ref('');
-    const loading = ref(false);
-    const errorMessage = ref('');
+const router = useRouter();
+const route = useRoute();
 
-    const verifyToken = async () => {
-      if (!token.value) return;
+const token = ref('');
+const loading = ref(false);
+const errorMessage = ref('');
 
-      errorMessage.value = '';
-      loading.value = true;
+const verifyToken = async () => {
+  if (!token.value) return;
 
-      try {
-        const response = await apiClient.post('/verify', { token: token.value });
-        if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-        }
-        if (response.data.description) {
-          localStorage.setItem('description', response.data.description);
-        }
-        await router.push(`/event/${response.data.event_id}`);
-      } catch (error) {
-        errorMessage.value = error.response?.data?.error || '验证失败，请重试';
-      } finally {
-        loading.value = false;
-      }
-    };
+  errorMessage.value = '';
+  loading.value = true;
 
-    const goToAbout = () => {
-      router.push('/about');
-    };
-
-    return {
-      router,
-      token,
-      loading,
-      errorMessage,
-      verifyToken,
-      goToAbout,
-    };
+  try {
+    const response = await apiClient.post('/verify', { token: token.value });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    if (response.data.description) {
+      localStorage.setItem('description', response.data.description);
+    }
+    await router.push(`/event/${response.data.event_id}`);
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error || '验证失败，请重试';
+  } finally {
+    loading.value = false;
   }
 };
+
+// 页面加载时检查 URL 是否带有 auth_token 参数
+onMounted(() => {
+  const authToken = route.query.auth_token;
+  if (authToken) {
+    token.value = authToken;
+    verifyToken();
+  }
+});
 </script>
+
 
 <style scoped>
 * {
