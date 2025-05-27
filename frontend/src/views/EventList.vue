@@ -45,7 +45,7 @@
             />
           </el-form-item>
           <el-form-item label="token">
-            <el-input v-model="form.token" placeholder="请输入访问令牌" >
+            <el-input v-model="form.token" :placeholder="isEditMode ? '留空为不修改':'请输入访问令牌'" >
               <template #append>
                 <el-button :icon="Refresh" @click="autoGeneratePwd"/>
               </template>
