@@ -8,6 +8,7 @@
     />
     <p v-else>加载中...</p>
   </div>
+  <p>活动名称：{{ props.description }}</p>
 </template>
 
 <script setup>
@@ -19,6 +20,10 @@ const props = defineProps({
   eventId: {
     type: [String, Number],
     required: true,
+  },
+  description:{
+    type: String,
+    required: false,
   }
 });
 

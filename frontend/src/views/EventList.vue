@@ -44,7 +44,11 @@
             />
           </el-form-item>
           <el-form-item label="token">
-            <el-input v-model="form.token" placeholder="请输入访问令牌" />
+            <el-input v-model="form.token" placeholder="请输入访问令牌" >
+              <template #append>
+                <el-button :icon="Refresh" @click="autoGeneratePwd"/>
+              </template>
+            </el-input>
           </el-form-item>
         </el-form>
 
@@ -71,7 +75,7 @@
           :fullscreen="isMobile"
           class="add-dialog"
           >
-          <QrCodeDisplay :eventId="currentEventId" />
+          <QrCodeDisplay :eventId="currentEventId" :description="currentDescription" />
       </el-dialog>
 
 
@@ -155,8 +159,8 @@
           <el-table-column label="操作" min-width="400" fixed="right">
             <template #default="scope">
               <div class="table-actions">
-                <el-button type="primary" @click="handleQrCodeShow(scope.row.event_id)" size="small">
-                  <el-icon @click="handleQrCodeShow(scope.row.event_id)" style="cursor: pointer;">
+                <el-button type="primary" @click="handleQrCodeShow(scope.row.event_id, scope.row.description)" size="small">
+                  <el-icon style="cursor: pointer;">
                     <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
                       <path d="M128 128h320v320H128V128zm64 64v192h192V192H192zm384-64h320v320H576V128zm64 64v192h192V192H640zM128 576h320v320H128V576zm64 64v192h192V640H192zM704 576h64v64h-64v-64z m-128 0h64v64h-64v-64z m0 128h192v192H576V704z m64 64v64h64v-64h-64z m128-64h64v64h-64v-64z"/>
                     </svg>
@@ -211,7 +215,7 @@
                         :active-text="event.is_open ? '开放' : '关闭'"
                     />
                   </div>
-                  <el-button type="primary" @click="handleQrCodeShow(event.event_id)" size="small" class="qr-code-button"> <el-icon style="cursor: pointer;"> <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
+                  <el-button type="primary" @click="handleQrCodeShow(event.event_id, event.description)" size="small" class="qr-code-button"> <el-icon style="cursor: pointer;"> <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
                         <path d="M128 128h320v320H128V128zm64 64v192h192V192H192zm384-64h320v320H576V128zm64 64v192h192V192H640zM128 576h320v320H128V576zm64 64v192h192V640H192zM704 576h64v64h-64v-64z m-128 0h64v64h-64v-64z m0 128h192v192H576V704z m64 64v64h64v-64h-64z m128-64h64v64h-64v-64z"/>
                       </svg>
                     </el-icon>
@@ -283,7 +287,7 @@ import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
-import { Plus, UploadFilled, View, Edit, Delete } from '@element-plus/icons-vue';
+import {Plus, UploadFilled, View, Edit, Delete, Refresh} from '@element-plus/icons-vue';
 import QrCodeDisplay from "@/components/QrCodeDisplay.vue";
 
 // 状态变量定义
@@ -301,6 +305,7 @@ const uploadDialogVisible = ref(false);
 const uploadLoading = ref(false);
 const fileList = ref([]);
 const currentEventId = ref(null);
+const currentDescription = ref(null);
 const uploadStatus = ref(null);
 const statusCheckInterval = ref(null);
 
@@ -453,9 +458,9 @@ const updateEventStatus = async (eventId, newVal) => {
   }
 }
 
-const handleQrCodeShow = (event_id) => {
-    console.log('event_id:', event_id);  // Should log a valid ID
-  currentEventId.value = event_id;
+const handleQrCodeShow = (eventId,description) => {
+  currentEventId.value = eventId;
+  currentDescription.value = description;
   qrCodeDialogVisible.value = true;
 }
 
@@ -555,6 +560,34 @@ const checkProcessStatus = () => {
     }
   }, 2000); // 每2秒检查一次
 };
+
+
+// 自动生产随机密码
+const autoGeneratePwd = () => {
+    form.token = generateRandomPassword()
+}
+const generateRandomPassword = () => {
+  const length = Math.floor(Math.random() * 9) + 8 // 随机生成8-16之间的密码长度
+  const lowerCaseChars = 'abcdefghijklmnopqrstuvwxyz'
+  const upperCaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const numberChars = '0123456789'
+
+  let password = ''
+
+  while (password.length < length) {
+    const randomCharType = Math.floor(Math.random() * 3) // 随机选择字符类型：0代表小写字母，1代表大写字母，2代表数字
+
+    if (randomCharType === 0) {
+      password += lowerCaseChars[Math.floor(Math.random() * lowerCaseChars.length)]
+    } else if (randomCharType === 1) {
+      password += upperCaseChars[Math.floor(Math.random() * upperCaseChars.length)]
+    } else {
+      password += numberChars[Math.floor(Math.random() * numberChars.length)]
+    }
+  }
+
+  return password;
+}
 </script>
 
 <style scoped>
