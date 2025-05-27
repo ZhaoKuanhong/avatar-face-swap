@@ -1,5 +1,5 @@
 <template>
-  <div class="qrcode-wrapper">
+  <div ref="qrcodeContainer" class="qrcode-wrapper">
     <qrcode-vue
       v-if="extraUrl"
       :value="extraUrl"
@@ -9,19 +9,21 @@
     <p v-else>加载中...</p>
   </div>
   <p>活动名称：{{ props.description }}</p>
+  <el-button type="primary" @click="downloadQrCode" :icon="Download">Download</el-button>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue' // Import watch
 import QrcodeVue from 'qrcode.vue'
-import {apiClient} from "@/api/axios.js";
+import { apiClient } from "@/api/axios.js";
+import {Download} from "@element-plus/icons-vue";
 
 const props = defineProps({
   eventId: {
     type: [String, Number],
     required: true,
   },
-  description:{
+  description: {
     type: String,
     required: false,
   }
@@ -62,22 +64,55 @@ function downloadQrCode() {
   // 添加文字（居中显示在下方）
   ctx.fillText(props.description || '', qrSize / 2, qrSize + 20);
 
-const extraUrl = ref('')
+  // 下载组合后的图片
+  const link = document.createElement("a");
+  link.download = "qr-code-with-text.png";
+  link.href = combinedCanvas.toDataURL("image/png");
+  link.click();
+}
 
-onMounted(async () => {
-  extraUrl.value = ''
+const extraUrl = ref('');
+
+// Function to fetch the token and update extraUrl
+const fetchToken = async (id) => {
+  if (!id) { // Don't fetch if eventId is not yet available
+    extraUrl.value = ''; // Clear previous QR code or show loading
+    return;
+  }
   try {
-    const res = await apiClient.get(`/events/${props.eventId}/token`)
-    const token = res.data?.token
+    console.log(`Workspaceing token for eventId: ${id}`); // Debugging
+    const res = await apiClient.get(`/events/${id}/token`);
+    const token = res.data?.token;
     if (token) {
-      extraUrl.value = `https://${window.location.hostname}/event?auth_token=${token}`
+      extraUrl.value = `https://${window.location.hostname}/event?auth_token=${token}`;
+      console.log(`Updated extraUrl: ${extraUrl.value}`); // Debugging
     } else {
-      console.error(res.data?.error || '未获取到链接')
+      extraUrl.value = ''; // Clear QR if no token
+      console.error(res.data?.error || '未获取到链接');
     }
   } catch (error) {
-    console.error('获取二维码链接失败:', error)
+    extraUrl.value = ''; // Clear QR on error
+    console.error('获取二维码链接失败:', error);
   }
-})
+};
+
+// Watch for changes in props.eventId
+watch(() => props.eventId, (newEventId, oldEventId) => {
+  if (newEventId !== oldEventId) { // Ensure it actually changed
+    fetchToken(newEventId);
+  }
+}, { immediate: true }); // 'immediate: true' will run the watcher once on component mount
+
+// onMounted is no longer strictly necessary for the initial fetch if using immediate watcher,
+// but can be kept if there are other mount-specific tasks.
+// If fetchToken is only called by the watcher (with immediate:true),
+// onMounted can be simplified or removed if it only contained fetchToken.
+/*
+onMounted(async () => {
+  // Initial fetch is now handled by the watcher with immediate: true
+  // await fetchToken(props.eventId);
+});
+*/
 </script>
 
 <style scoped>
