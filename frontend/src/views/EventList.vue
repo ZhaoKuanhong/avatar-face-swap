@@ -443,6 +443,14 @@ const deleteEvent = async (event_id) => {
   }
 };
 
+const dialogClose = () => {
+  isEditMode.value = false;
+    form.event_id = '';
+    form.description = '';
+    form.event_date = '';
+    form.token = '';
+}
+
 // 更新活动开关状态
 const updateEventStatus = async (eventId, newVal) => {
   try {
