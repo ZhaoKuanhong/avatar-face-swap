@@ -75,7 +75,7 @@ const extraUrl = ref('');
 
 // Function to fetch the token and update extraUrl
 const fetchToken = async (id) => {
-  if (!id) { // Don't fetch if eventId is not yet available
+  if (id === '') { // Don't fetch if eventId is not yet available
     extraUrl.value = ''; // Clear previous QR code or show loading
     return;
   }
