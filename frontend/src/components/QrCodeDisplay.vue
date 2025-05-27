@@ -31,6 +31,7 @@ const props = defineProps({
 const extraUrl = ref('')
 
 onMounted(async () => {
+  extraUrl.value = ''
   try {
     const res = await apiClient.get(`/events/${props.eventId}/token`)
     const token = res.data?.token
