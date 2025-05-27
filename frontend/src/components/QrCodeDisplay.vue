@@ -1,5 +1,16 @@
 <template>
-  <div ref="qrcodeContainer" class="qrcode-wrapper">
+   <el-skeleton style="width: 240px; margin: auto;" :loading="loading" animated>
+      <template #template>
+        <el-skeleton-item variant="image" style="width: 200px; height: 200px" />
+        <div style="padding: 14px">
+          <el-skeleton-item variant="h3" style="width: 50%" />
+        </div>
+      </template>
+   </el-skeleton>
+
+  <div ref="qrcodeContainer"
+       v-if="!loading"
+       class="qrcode-wrapper">
     <qrcode-vue
       v-if="extraUrl"
       :value="extraUrl"
@@ -7,8 +18,8 @@
       :level="'M'"
     />
     <p v-else>加载中...</p>
+    <p>活动名称：{{ props.description }}</p>
   </div>
-  <p>活动名称：{{ props.description }}</p>
   <el-button type="primary" @click="downloadQrCode" :icon="Download">Download</el-button>
 </template>
 
@@ -80,12 +91,10 @@ const fetchToken = async (id) => {
     return;
   }
   try {
-    console.log(`Workspaceing token for eventId: ${id}`); // Debugging
     const res = await apiClient.get(`/events/${id}/token`);
     const token = res.data?.token;
     if (token) {
       extraUrl.value = `https://${window.location.hostname}/event?auth_token=${token}`;
-      console.log(`Updated extraUrl: ${extraUrl.value}`); // Debugging
     } else {
       extraUrl.value = ''; // Clear QR if no token
       console.error(res.data?.error || '未获取到链接');
@@ -96,10 +105,13 @@ const fetchToken = async (id) => {
   }
 };
 
+const loading = ref(false)
 // Watch for changes in props.eventId
-watch(() => props.eventId, (newEventId, oldEventId) => {
-  if (newEventId !== oldEventId) { // Ensure it actually changed
-    fetchToken(newEventId);
+watch(() => props.eventId, async (newEventId, oldEventId) => {
+  if (newEventId !== oldEventId) {// Ensure it actually changed
+    loading.value = true;
+    await fetchToken(newEventId);
+    loading.value = false;
   }
 }, { immediate: true }); // 'immediate: true' will run the watcher once on component mount
 
