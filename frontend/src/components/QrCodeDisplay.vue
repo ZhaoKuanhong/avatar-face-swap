@@ -30,7 +30,7 @@ onMounted(async () => {
     const res = await apiClient.get(`/events/${props.eventId}/token`)
     const token = res.data?.token
     if (token) {
-      extraUrl.value = `${import.meta.env.VITE_API_BASE_URL}/event?auth_token=${token}`
+      extraUrl.value = `https://${window.location.hostname}/event?auth_token=${token}`
     } else {
       console.error(res.data?.error || '未获取到链接')
     }
