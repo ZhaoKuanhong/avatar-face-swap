@@ -27,10 +27,11 @@
           :width="dialogWidth"
           :fullscreen="isMobile"
           class="add-dialog"
+          @close="dialogClose"
       >
         <el-form @submit.prevent label-position="top" class="dialog-form">
           <el-form-item label="event_id">
-            <el-input v-model="form.event_id" placeholder="请输入活动 ID" />
+            <el-input v-model="form.event_id" placeholder="请输入活动 ID" :disabled="isEditMode"/>
           </el-form-item>
           <el-form-item label="活动名称">
             <el-input v-model="form.description" placeholder="请输入活动名称" />
@@ -208,18 +209,44 @@
                     <span class="event-date">{{ event.event_date }}</span>
                   </div>
                 </div>
-            <div class="event-actions"> <div class="event-status">
+            <div class="event-actions">
+              <div class="event-status">
                     <el-switch
                         v-model="event.is_open"
                         @change="(val) => updateEventStatus(event.event_id, val)"
                         :active-text="event.is_open ? '开放' : '关闭'"
                     />
-                  </div>
-                  <el-button type="primary" @click="handleQrCodeShow(event.event_id, event.description)" size="small" class="qr-code-button"> <el-icon style="cursor: pointer;"> <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
+              </div>
+              <!--生成二维码-->
+              <div class="action-buttons">
+                <el-button
+                      type="primary"
+                      class="action-button"
+                      size="small"
+                      @click="handleQrCodeShow(event.event_id, event.description)"
+                      >
+                    <el-icon style="cursor: pointer;">
+                      <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
                         <path d="M128 128h320v320H128V128zm64 64v192h192V192H192zm384-64h320v320H576V128zm64 64v192h192V192H640zM128 576h320v320H128V576zm64 64v192h192V640H192zM704 576h64v64h-64v-64z m-128 0h64v64h-64v-64z m0 128h192v192H576V704z m64 64v64h64v-64h-64z m128-64h64v64h-64v-64z"/>
                       </svg>
                     </el-icon>
                   </el-button>
+              <!--删除活动-->
+              <el-popconfirm
+                    title="确定要删除这一项吗？"
+                    @confirm="deleteEvent(event.event_id)"
+                >
+                  <template #reference>
+                    <el-button
+                        type="danger"
+                        :icon="Delete"
+                        size="small"
+                        class="action-button"
+                    />
+                  </template>
+                </el-popconfirm>
+              </div>
+
                 </div>
               </div>
             </template>
@@ -236,14 +263,23 @@
                 </el-button>
                 <el-button
                     type="primary"
-                    @click="handleEditPic(event.event_id)"
+                    @click="editEvent(event)"
                     :icon="Edit"
+                    class="action-button"
+                >
+                  编辑活动
+                </el-button>
+
+              </div>
+              <div class="action-row">
+                <el-button
+                    type="primary"
+                    @click="handleEditPic(event.event_id)"
+                    :icon="PictureFilled"
                     class="action-button"
                 >
                   生成图片
                 </el-button>
-              </div>
-              <div class="action-row">
                 <el-button
                     type="success"
                     @click="showUploadDialog(event.event_id)"
@@ -252,20 +288,7 @@
                 >
                   上传活动图片
                 </el-button>
-                <el-popconfirm
-                    title="确定要删除这一项吗？"
-                    @confirm="deleteEvent(event.event_id)"
-                >
-                  <template #reference>
-                    <el-button
-                        type="danger"
-                        :icon="Delete"
-                        class="action-button"
-                    >
-                      删除
-                    </el-button>
-                  </template>
-                </el-popconfirm>
+
               </div>
             </div>
           </el-card>
@@ -287,7 +310,7 @@ import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
-import {Plus, UploadFilled, View, Edit, Delete, Refresh} from '@element-plus/icons-vue';
+import {Plus, UploadFilled, View, Edit, Delete, Refresh, PictureFilled} from '@element-plus/icons-vue';
 import QrCodeDisplay from "@/components/QrCodeDisplay.vue";
 
 // 状态变量定义
@@ -570,7 +593,7 @@ const checkProcessStatus = () => {
 };
 
 
-// 自动生产随机密码
+// 自动生成随机密码
 const autoGeneratePwd = () => {
     form.token = generateRandomPassword()
 }
@@ -856,7 +879,8 @@ const generateRandomPassword = () => {
   }
 
   .action-buttons {
-    width: 100%;
+    display: flex;
+    align-items: center;
   }
 
   .add-button {
