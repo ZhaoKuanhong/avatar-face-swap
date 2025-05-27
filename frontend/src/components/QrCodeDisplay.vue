@@ -27,6 +27,40 @@ const props = defineProps({
   }
 });
 
+const qrcodeContainer = ref();
+
+function downloadQrCode() {
+  const canvas = qrcodeContainer.value.querySelector("canvas");
+  if (!canvas) {
+    console.error("未找到二维码 canvas 元素");
+    return;
+  }
+
+  const qrSize = canvas.width; // 通常为 200
+  const textHeight = 30; // 为文字留空间
+  const totalHeight = qrSize + textHeight;
+
+  // 创建一个新 canvas
+  const combinedCanvas = document.createElement("canvas");
+  combinedCanvas.width = qrSize;
+  combinedCanvas.height = totalHeight;
+
+  const ctx = combinedCanvas.getContext("2d");
+  if (!ctx) {
+    console.error("无法获取 Canvas 上下文");
+    return;
+  }
+
+  // 绘制原二维码
+  ctx.drawImage(canvas, 0, 0);
+
+  // 设置文字样式
+  ctx.font = "16px sans-serif";
+  ctx.fillStyle = "#000";
+  ctx.textAlign = "center";
+
+  // 添加文字（居中显示在下方）
+  ctx.fillText(props.description || '', qrSize / 2, qrSize + 20);
 
 const extraUrl = ref('')
 
