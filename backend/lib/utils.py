@@ -31,6 +31,24 @@ def load_events():
         print(f"[load_events] 数据库读取失败: {e}")
         return []
 
+def load_event(event_id):
+    """根据 event_id 从 SQLite 数据库中加载单个活动。"""
+    try:
+        row = query_db('SELECT event_id, description, event_date, is_open, token FROM event WHERE event_id = ?', (event_id,), one=True)
+        if row:
+            return {
+                "event_id": row["event_id"],
+                "description": row["description"],
+                "event_date": row["event_date"],
+                "is_open": bool(row["is_open"]) if row["is_open"] is not None else False,
+                "token": row["token"]
+            }
+        else:
+            return None
+    except Exception as e:
+        print(f"[load_event] 数据库读取失败: {e}")
+        return None
+
 
 def write_event(event_id, description, token, event_date):
     """

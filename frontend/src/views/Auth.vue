@@ -57,6 +57,10 @@ const token = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
 
+const goToAbout = () => {
+      router.push('/about');
+};
+
 const verifyToken = async () => {
   if (!token.value) return;
 

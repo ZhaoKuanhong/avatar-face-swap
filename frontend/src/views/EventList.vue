@@ -23,7 +23,7 @@
       <!-- 添加活动表单对话框 -->
       <el-dialog
           v-model="dialogFormVisible"
-          title="添加活动"
+          :title="isEditMode ? '编辑活动' : '添加活动'"
           :width="dialogWidth"
           :fullscreen="isMobile"
           class="add-dialog"
@@ -57,11 +57,23 @@
                 :loading="addLoading"
                 class="confirm-btn"
             >
-              {{ addLoading ? '创建中...' : '创建' }}
+                {{ addLoading ? (isEditMode ? '更新中...' : '创建中...') : (isEditMode ? '更新' : '创建') }}
             </el-button>
           </div>
         </template>
       </el-dialog>
+
+      <!-- 二维码对话框 -->
+      <el-dialog
+          v-model="qrCodeDialogVisible"
+          title="收集二维码"
+          :width="dialogWidth"
+          :fullscreen="isMobile"
+          class="add-dialog"
+          >
+          <QrCodeDisplay :eventId="currentEventId" />
+      </el-dialog>
+
 
       <!-- 上传图片对话框 -->
       <el-dialog
@@ -143,8 +155,18 @@
           <el-table-column label="操作" min-width="400" fixed="right">
             <template #default="scope">
               <div class="table-actions">
+                <el-button type="primary" @click="handleQrCodeShow(scope.row.event_id)" size="small">
+                  <el-icon @click="handleQrCodeShow(scope.row.event_id)" style="cursor: pointer;">
+                    <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
+                      <path d="M128 128h320v320H128V128zm64 64v192h192V192H192zm384-64h320v320H576V128zm64 64v192h192V192H640zM128 576h320v320H128V576zm64 64v192h192V640H192zM704 576h64v64h-64v-64z m-128 0h64v64h-64v-64z m0 128h192v192H576V704z m64 64v64h64v-64h-64z m128-64h64v64h-64v-64z"/>
+                    </svg>
+                  </el-icon>
+                </el-button>
                 <el-button type="primary" @click="handleEventView(scope.row.event_id)" size="small">
                   查看活动
+                </el-button>
+                <el-button type="primary" @click="editEvent(scope.row)" size="small">
+                  编辑活动
                 </el-button>
                 <el-button type="primary" @click="handleEditPic(scope.row.event_id)" size="small">
                   生成图片
@@ -182,12 +204,18 @@
                     <span class="event-date">{{ event.event_date }}</span>
                   </div>
                 </div>
-                <div class="event-status">
-                  <el-switch
-                      v-model="event.is_open"
-                      @change="(val) => updateEventStatus(event.event_id, val)"
-                      :active-text="event.is_open ? '开放' : '关闭'"
-                  />
+            <div class="event-actions"> <div class="event-status">
+                    <el-switch
+                        v-model="event.is_open"
+                        @change="(val) => updateEventStatus(event.event_id, val)"
+                        :active-text="event.is_open ? '开放' : '关闭'"
+                    />
+                  </div>
+                  <el-button type="primary" @click="handleQrCodeShow(event.event_id)" size="small" class="qr-code-button"> <el-icon style="cursor: pointer;"> <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor">
+                        <path d="M128 128h320v320H128V128zm64 64v192h192V192H192zm384-64h320v320H576V128zm64 64v192h192V192H640zM128 576h320v320H128V576zm64 64v192h192V640H192zM704 576h64v64h-64v-64z m-128 0h64v64h-64v-64z m0 128h192v192H576V704z m64 64v64h64v-64h-64z m128-64h64v64h-64v-64z"/>
+                      </svg>
+                    </el-icon>
+                  </el-button>
                 </div>
               </div>
             </template>
@@ -256,13 +284,17 @@ import { useRouter } from 'vue-router';
 import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
 import { Plus, UploadFilled, View, Edit, Delete } from '@element-plus/icons-vue';
+import QrCodeDisplay from "@/components/QrCodeDisplay.vue";
 
 // 状态变量定义
 const dialogFormVisible = ref(false);
+const qrCodeDialogVisible = ref(false)
 const loading = ref(true);
 const addLoading = ref(false);
 const eventList = ref([]);
 const router = useRouter();
+
+const isEditMode = ref(false); // false: 新建, true: 编辑
 
 // 图片上传相关状态
 const uploadDialogVisible = ref(false);
@@ -375,6 +407,16 @@ const addEvent = async () => {
   }
 };
 
+// 编辑活动
+const editEvent = (event) => {
+  isEditMode.value = true;
+  dialogFormVisible.value = true;
+  form.event_id = event.event_id;
+  form.description = event.description;
+  form.event_date = event.event_date;
+  form.token = event.token;
+};
+
 // 删除活动
 const deleteEvent = async (event_id) => {
   try {
@@ -409,6 +451,12 @@ const updateEventStatus = async (eventId, newVal) => {
     const event = eventList.value.find(e => e.event_id === eventId)
     if (event) event.is_open = !newVal
   }
+}
+
+const handleQrCodeShow = (event_id) => {
+    console.log('event_id:', event_id);  // Should log a valid ID
+  currentEventId.value = event_id;
+  qrCodeDialogVisible.value = true;
 }
 
 // 显示上传图片对话框
@@ -571,6 +619,12 @@ const checkProcessStatus = () => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.event-actions {
+  display: flex;
+  flex-direction: column; /* Stack items vertically */
+  align-items: flex-end; /* Align items (switch and button) to the right */
 }
 
 /* 移动端卡片 */
