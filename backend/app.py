@@ -239,6 +239,19 @@ def get_qq_nickname(event_id, qq_number):
         })
 
 
+@app.route('/api/events/<event_id>/token', methods=['GET'])
+@requires_admin_permission
+def get_event_qr_code(event_id):
+    referer = request.headers.get('Referer') or request.headers.get('Origin')
+    if not referer:
+        return jsonify({'error': 'Missing Referer or Origin'}), 400
+
+    token = load_event(event_id)['token']
+    if not token:
+        return jsonify({'error': 'Event not found or token missing'}), 404
+    return jsonify({'token': token})
+
+
 @app.route('/api/events/<event_id>/pic', methods=['GET'])
 @requires_event_permission
 def get_event_pic(event_id):
