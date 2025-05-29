@@ -12,7 +12,7 @@
           <el-button
               type="primary"
               :icon="Plus"
-              @click="dialogFormVisible = true"
+              @click="handleAddEvent"
               class="add-button"
           >
             <span class="button-text">添加活动</span>
@@ -405,6 +405,11 @@ const fetchEvent = async () => {
 };
 
 // 添加新活动
+const handleAddEvent = () => {
+  form.event_id = eventList.value.length;
+  dialogFormVisible.value = true;
+}
+
 const addEvent = async () => {
   try {
     addLoading.value = true;
