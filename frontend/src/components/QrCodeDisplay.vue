@@ -2,8 +2,8 @@
    <el-skeleton style="width: 240px; margin: auto;" :loading="loading" animated>
       <template #template>
         <el-skeleton-item variant="image" style="width: 200px; height: 200px" />
-        <div style="padding: 14px">
-          <el-skeleton-item variant="h3" style="width: 50%" />
+        <div style="padding: 10px">
+          <el-skeleton-item style="font-size: 15px" />
         </div>
       </template>
    </el-skeleton>
@@ -18,7 +18,7 @@
       :level="'M'"
     />
     <p v-else>加载中...</p>
-    <p>活动名称：{{ props.description }}</p>
+    <p style="font-size: 15px">活动名称：{{ props.description }}</p>
   </div>
   <el-button type="primary" @click="downloadQrCode" :icon="Download">Download</el-button>
 </template>
