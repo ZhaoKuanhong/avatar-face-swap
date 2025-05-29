@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, g
+from flask import Flask, jsonify, request, send_from_directory, g, redirect
 from flask_cors import CORS
 import threading
 
@@ -201,18 +201,18 @@ def get_qq_nickname(event_id, qq_number):
         import json
 
         # Tips: 先用这个，不知道啥时候失效
-        url = f"https://fxinz.cn/api/qq-query.php?qq={qq_number}"
+        url = f"https://api.ilingku.com/int/v1/qqname?qq={qq_number}"
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
 
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10, verify=False)
         content = response.content.decode('utf-8')
         data = json.loads(content)
 
-        if data.get('code') == '200' and 'data' in data:
-            nickname = data['data'].get('name')
+        if data.get('code') == 200 and 'name' in data:
+            nickname = data.get('name')
 
             if nickname and nickname.strip():
                 return jsonify({
@@ -539,6 +539,10 @@ def get_process_status(event_id):
 
     except Exception as e:
         return jsonify(error=f'获取状态失败: {str(e)}'), 500
+
+@app.route('/')
+def index():
+    return redirect("https://activity.gdutbandori.org/event")
 
 
 if __name__ == '__main__':

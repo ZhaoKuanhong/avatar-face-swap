@@ -12,7 +12,7 @@
           <el-button
               type="primary"
               :icon="Plus"
-              @click="dialogFormVisible = true"
+              @click="handleAddEvent"
               class="add-button"
           >
             <span class="button-text">添加活动</span>
@@ -167,24 +167,28 @@
                     </svg>
                   </el-icon>
                 </el-button>
-                <el-button type="primary" @click="handleEventView(scope.row.event_id)" size="small">
-                  查看活动
-                </el-button>
-                <el-button type="primary" @click="editEvent(scope.row)" size="small">
-                  编辑活动
-                </el-button>
-                <el-button type="primary" @click="handleEditPic(scope.row.event_id)" size="small">
-                  生成图片
-                </el-button>
-                <el-button type="success" @click="showUploadDialog(scope.row.event_id)" size="small">
-                  上传活动图片
-                </el-button>
+                <el-button-group>
+                  <el-button type="primary" @click="handleEventView(scope.row.event_id)" size="small" :icon="View">
+                    查看
+                  </el-button>
+                  <el-button type="primary" @click="editEvent(scope.row)" size="small" :icon="Edit">
+                    编辑
+                  </el-button>
+                </el-button-group>
+                <el-button-group>
+                  <el-button type="primary" @click="handleEditPic(scope.row.event_id)" size="small" :icon="PictureFilled">
+                    生成
+                  </el-button>
+                  <el-button type="success" @click="showUploadDialog(scope.row.event_id)" size="small" :icon="UploadFilled">
+                    上传图片
+                  </el-button>
+                </el-button-group>
                 <el-popconfirm
                     title="确定要删除这一项吗？"
                     @confirm="deleteEvent(scope.row.event_id)"
                 >
                   <template #reference>
-                    <el-button type="danger" size="small">删除</el-button>
+                    <el-button type="danger" size="small" :icon="Delete"></el-button>
                   </template>
                 </el-popconfirm>
               </div>
@@ -401,6 +405,11 @@ const fetchEvent = async () => {
 };
 
 // 添加新活动
+const handleAddEvent = () => {
+  form.event_id = eventList.value.length;
+  dialogFormVisible.value = true;
+}
+
 const addEvent = async () => {
   try {
     addLoading.value = true;
