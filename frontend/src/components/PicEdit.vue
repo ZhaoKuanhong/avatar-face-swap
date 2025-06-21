@@ -83,7 +83,7 @@
               @mousedown="handleStageMouseDown"
               @touchstart="handleStageMouseDown"
           >
-            <v-layer ref="layer">
+            <v-layer ref="bgLayer">
               <!-- 背景图 -->
               <v-image
                   v-if="backgroundImage"
@@ -528,8 +528,9 @@ const handleStageMouseDown = (e) => {
 }
 
 const handleFaceClick = (e) => {
-  const face = e.target
-  selectedFace.value = face
+  const clickedNode = e.target
+  selectedFace.value = clickedNode
+  clickedNode.moveToTop()
 
   // 设置变换器
   if (transformer.value?.getNode()) {
