@@ -572,59 +572,89 @@ const toggleFullscreen = () => {
 
 // 导出功能
 const handleExport = async (command) => {
-  if (!stage.value || !stageReady.value) return
+  if (!stage.value || !stageReady.value) return;
 
-  exporting.value = true
+  exporting.value = true;
+  const stageNode = stage.value.getNode();
+
+  // 1. 保存当前视图状态 (尺寸, 缩放, 位置, 选中对象)
+  const currentScale = stageScale.value;
+  const currentX = stageX.value;
+  const currentY = stageY.value;
+  const currentWidth = stageNode.width();
+  const currentHeight = stageNode.height();
+  const currentSelection = selectedFace.value;
 
   try {
-    const [format, quality] = command.split('-')
-    const stageNode = stage.value.getNode()
-
-    // 保存当前选择状态
-    const currentSelection = selectedFace.value
-
     // 临时取消选择以避免导出选择框
     if (transformer.value?.getNode()) {
-      transformer.value.getNode().nodes([])
+      transformer.value.getNode().nodes([]);
     }
-    selectedFace.value = null
+    selectedFace.value = null;
 
-    // 等待一帧确保UI更新
-    await nextTick()
+    // 2. 临时重置 Stage 以进行全尺寸、无缩放的导出
+    stageScale.value = 1;
+    stageX.value = 0;
+    stageY.value = 0;
+    // 直接设置 Konva Stage 的尺寸为背景图的原始尺寸
+    stageNode.width(canvasWidth.value);
+    stageNode.height(canvasHeight.value);
 
-    let pixelRatio = quality === 'high' ? 2 : 1
-    let mimeType = format === 'png' ? 'image/png' : 'image/jpeg'
-    let qualityValue = quality === 'high' ? 0.95 : 0.8
+    // 3. 等待 Vue 和 Konva 应用上述更改
+    await nextTick();
+
+    // 4. 配置并执行导出
+    const [format, quality] = command.split('-');
+    const pixelRatio = quality === 'high' ? 2 : 1;
+    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+    const qualityValue = quality === 'high' ? 0.95 : 0.8;
 
     const dataUrl = stageNode.toDataURL({
       mimeType,
       quality: qualityValue,
-      pixelRatio
-    })
+      pixelRatio,
+      // 显式定义导出区域为背景图的完整尺寸，确保万无一失
+      x: 0,
+      y: 0,
+      width: canvasWidth.value,
+      height: canvasHeight.value,
+    });
 
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.download = `composed_image_${eventId}_${Date.now()}.${format === 'jpg' ? 'jpg' : 'png'}`
+    // 创建链接并触发下载
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `composed_image_${eventId}_${Date.now()}.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    // 恢复选择状态
-    if (currentSelection && transformer.value?.getNode()) {
-      selectedFace.value = currentSelection
-      transformer.value.getNode().nodes([currentSelection])
-    }
-
-    ElMessage.success('图片导出成功')
+    ElMessage.success('图片导出成功');
 
   } catch (error) {
-    console.error('Export failed:', error)
-    ElMessage.error('导出失败，请重试')
+    console.error('Export failed:', error);
+    ElMessage.error('导出失败，请重试');
   } finally {
-    exporting.value = false
+    // 5. 无论成功与否，在 finally 块中恢复用户的原始视图状态
+
+    // 恢复 Stage 的原始尺寸和视图
+    stageNode.width(currentWidth);
+    stageNode.height(currentHeight);
+    stageScale.value = currentScale;
+    stageX.value = currentX;
+    stageY.value = currentY;
+
+    // 恢复之前的选中状态
+    if (currentSelection && transformer.value?.getNode()) {
+      selectedFace.value = currentSelection;
+      transformer.value.getNode().nodes([currentSelection]);
+    }
+
+    // 等待UI恢复
+    await nextTick();
+
+    exporting.value = false;
   }
-}
+};
 
 // 工具函数
 const getSelectedObjectName = () => {
