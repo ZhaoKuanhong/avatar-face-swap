@@ -15,6 +15,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from "element-plus";
 import { apiClient } from "@/api/axios.js";
+import VueKonva from "vue-konva";
 
 axios.defaults.baseURL = `${import.meta.env.VITE_API_BASE_URL}`;
 
@@ -114,6 +115,8 @@ router.beforeEach(async (to, from, next) => {
 });
 
 const app = createApp(App)
+app.use(VueKonva)
+
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }

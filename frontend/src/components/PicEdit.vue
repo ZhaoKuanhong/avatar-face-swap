@@ -13,20 +13,20 @@
         <!-- 缩放控制 -->
         <div class="zoom-controls">
           <el-button-group size="small">
-            <el-button @click="zoomOut" :disabled="zoomLevel <= 0.1" title="缩小" :icon="Minus"></el-button>
-            <el-button @click="zoomIn" :disabled="zoomLevel >= 3" title="放大" :icon="Plus"></el-button>
+            <el-button @click="zoomOut" :disabled="stageScale <= 0.1" title="缩小" :icon="Minus"></el-button>
+            <el-button @click="zoomIn" :disabled="stageScale >= 3" title="放大" :icon="Plus"></el-button>
           </el-button-group>
-          <span class="zoom-display">{{ Math.round(zoomLevel * 100) }}%</span>
+          <span class="zoom-display">{{ Math.round(stageScale * 100) }}%</span>
           <el-button size="small" @click="resetZoom" title="重置缩放" :icon="RefreshLeft"></el-button>
         </div>
 
         <!-- 操作控制 -->
-<!--        <div class="action-controls">-->
-<!--          <el-button-group size="small">-->
-<!--            <el-button @click="undo" :disabled="!canUndo" title="撤销" :icon="Back"></el-button>-->
-<!--            <el-button @click="redo" :disabled="!canRedo" title="重做" :icon="Right"></el-button>-->
-<!--          </el-button-group>-->
-<!--        </div>-->
+        <div class="action-controls">
+          <el-button-group size="small">
+            <el-button @click="undo" :disabled="!canUndo" title="撤销" :icon="Back"></el-button>
+            <el-button @click="redo" :disabled="!canRedo" title="重做" :icon="Right"></el-button>
+          </el-button-group>
+        </div>
       </div>
 
       <div class="toolbar-section">
@@ -38,7 +38,7 @@
         <!-- 导出控制 -->
         <div class="export-controls">
           <el-dropdown @command="handleExport" size="small">
-            <el-button type="primary" :loading="exporting" :disabled="!canvasReady" :icon="Download">
+            <el-button type="primary" :loading="exporting" :disabled="!stageReady" :icon="Download">
               导出
               <ArrowDown class="el-icon--right" />
             </el-button>
@@ -74,17 +74,45 @@
           </div>
         </div>
 
-        <!-- 画布 -->
-        <div class="canvas-wrapper" :style="canvasWrapperStyle">
-          <canvas
-              ref="canvasRef"
-              :class="{ 'canvas-loading': loading }"
+        <!-- Konva 画布 -->
+        <div class="stage-wrapper" v-show="!loading">
+          <v-stage
+              ref="stage"
+              :config="stageConfig"
               @wheel="handleWheel"
-          />
+              @mousedown="handleStageMouseDown"
+              @touchstart="handleStageMouseDown"
+          >
+            <v-layer ref="layer">
+              <!-- 背景图 -->
+              <v-image
+                  v-if="backgroundImage"
+                  :config="backgroundConfig"
+              />
+
+              <!-- 人脸图片 -->
+              <v-image
+                  v-for="face in faceImages"
+                  :key="face.id"
+                  :config="face.config"
+                  @click="handleFaceClick"
+                  @tap="handleFaceClick"
+                  @dragstart="handleFaceDragStart"
+                  @dragend="handleFaceDragEnd"
+                  @transformend="handleFaceTransform"
+              />
+
+              <!-- 变换控制器 -->
+              <v-transformer
+                  ref="transformer"
+                  :config="transformerConfig"
+              />
+            </v-layer>
+          </v-stage>
         </div>
 
         <!-- 画布控制工具 -->
-        <div class="canvas-controls" v-show="canvasReady && !loading">
+        <div class="canvas-controls" v-show="stageReady && !loading">
           <div class="canvas-toolbar">
             <el-tooltip content="适应屏幕" placement="left">
               <el-button size="small" @click="fitToScreen" circle :icon="FullScreen"></el-button>
@@ -93,7 +121,7 @@
               <el-button size="small" @click="actualSize" circle :icon="View"></el-button>
             </el-tooltip>
             <el-tooltip content="居中显示" placement="left">
-              <el-button size="small" @click="centerCanvas" circle :icon="Location"></el-button>
+              <el-button size="small" @click="centerStage" circle :icon="Location"></el-button>
             </el-tooltip>
           </div>
         </div>
@@ -103,12 +131,12 @@
           <div class="shortcut-item">
             <kbd>Delete</kbd> 删除选中对象
           </div>
-<!--          <div class="shortcut-item">-->
-<!--            <kbd>Ctrl+Z</kbd> 撤销-->
-<!--          </div>-->
-<!--          <div class="shortcut-item">-->
-<!--            <kbd>Ctrl+Y</kbd> 重做-->
-<!--          </div>-->
+          <div class="shortcut-item">
+            <kbd>Ctrl+Z</kbd> 撤销
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl+Y</kbd> 重做
+          </div>
           <div class="shortcut-item">
             <kbd>滚轮</kbd> 缩放画布
           </div>
@@ -123,10 +151,10 @@
     <div class="status-bar">
       <div class="status-left">
         <span class="status-item">
-          <i class="el-icon-picture"></i>
+          <Edit />
           {{ canvasWidth }} × {{ canvasHeight }}
         </span>
-        <span class="status-item" v-if="selectedObject">
+        <span class="status-item" v-if="selectedFace">
           <Edit />
           {{ getSelectedObjectName() }}
         </span>
@@ -150,13 +178,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import * as fabric from 'fabric'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { apiClient } from "@/api/axios.js"
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import {
-  Picture, Minus, Plus, RefreshLeft, Back, Right,
+  Minus, Plus, RefreshLeft, Back, Right,
   FullScreen, Download, ArrowDown, View, Location,
   Edit, Timer, QuestionFilled
 } from '@element-plus/icons-vue'
@@ -172,12 +199,13 @@ defineProps({
 })
 
 // 基础状态
-const canvasRef = ref(null)
 const canvasContainer = ref(null)
+const stage = ref(null)
+const layer = ref(null)
+const transformer = ref(null)
 const canvasWidth = ref(0)
 const canvasHeight = ref(0)
-const canvas = ref(null)
-const canvasReady = ref(false)
+const stageReady = ref(false)
 
 // 加载状态
 const loading = ref(false)
@@ -189,23 +217,62 @@ const loadedFacesCount = ref(0)
 // UI状态
 const isFullscreen = ref(false)
 const showShortcuts = ref(false)
-const selectedObject = ref(null)
+const selectedFace = ref(null)
 const lastModified = ref(new Date())
 
 // 缩放和视图
-const zoomLevel = ref(1)
-const panX = ref(0)
-const panY = ref(0)
+const stageScale = ref(1)
+const stageX = ref(0)
+const stageY = ref(0)
 
 // 导出状态
 const exporting = ref(false)
 
-// 操作历史
+// 历史记录管理
 const history = ref([])
 const historyIndex = ref(-1)
-const maxHistorySize = 50
+const isUndoRedo = ref(false) // 防止撤回/重做时触发新的历史记录
 
-// 并发控制
+// Konva 相关状态
+const backgroundImage = ref(null)
+const faceImages = ref([])
+
+// Stage 配置
+const stageConfig = computed(() => ({
+  width: canvasContainer.value?.clientWidth || 800,
+  height: canvasContainer.value?.clientHeight || 600,
+  scaleX: stageScale.value,
+  scaleY: stageScale.value,
+  x: stageX.value,
+  y: stageY.value,
+  draggable: false
+}))
+
+// 背景图配置
+const backgroundConfig = computed(() => ({
+  image: backgroundImage.value,
+  x: 0,
+  y: 0,
+  listening: false
+}))
+
+// 计算属性
+const canUndo = computed(() => historyIndex.value > 0)
+const canRedo = computed(() => historyIndex.value < history.value.length - 1)
+
+// 变换器配置
+const transformerConfig = ref({
+  rotateEnabled: true,
+  borderStroke: '#FF3377',
+  borderStrokeWidth: 2,
+  anchorStroke: '#FF3377',
+  anchorFill: '#FF3377',
+  anchorSize: 12,
+  keepRatio: false,
+  enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']
+})
+
+// 并发控制类
 class ConcurrentLoader {
   constructor(concurrency = 6) {
     this.concurrency = concurrency
@@ -265,15 +332,6 @@ class ConcurrentLoader {
   }
 }
 
-// 计算属性
-const canUndo = computed(() => historyIndex.value > 0)
-const canRedo = computed(() => historyIndex.value < history.value.length - 1)
-
-const canvasWrapperStyle = computed(() => ({
-  transform: `scale(${zoomLevel.value}) translate(${panX.value}px, ${panY.value}px)`,
-  transformOrigin: 'center center'
-}))
-
 // API函数
 const fetchBackground = async () => {
   const res = await apiClient.get(`/events/${eventId}/pic`, {
@@ -294,24 +352,25 @@ const fetchFacesInfo = async () => {
 
 const fetchFaceImage = async (filename) => {
   try {
-    // 首先尝试获取用户上传的头像
     const res = await apiClient.get(`/events/${eventId}/faces/upload/${filename}`, {
       responseType: 'blob'
     })
     return URL.createObjectURL(res.data)
   } catch (err) {
     console.warn(`User uploaded image ${filename} not found, using default`)
-    // 如果没有上传的头像，使用默认图片
     return '/default-face.png'
   }
 }
 
 // 历史记录管理
 const saveState = () => {
-  if (!canvas.value) return
+  if (isUndoRedo.value || !stageReady.value) return // 防止撤回/重做时保存状态
 
   const state = {
-    objects: canvas.value.toJSON(['id', 'layerType']),
+    faces: faceImages.value.map(face => ({
+      ...face,
+      config: { ...face.config }
+    })),
     timestamp: Date.now()
   }
 
@@ -323,6 +382,7 @@ const saveState = () => {
   history.value.push(state)
 
   // 限制历史记录大小
+  const maxHistorySize = 50
   if (history.value.length > maxHistorySize) {
     history.value.shift()
   } else {
@@ -333,48 +393,83 @@ const saveState = () => {
 }
 
 const undo = () => {
-  if (!canUndo.value || !canvas.value) return
+  if (!canUndo.value) return
 
+  isUndoRedo.value = true
   historyIndex.value--
   const state = history.value[historyIndex.value]
 
-  canvas.value.loadFromJSON(state.objects, () => {
-    canvas.value.renderAll()
-  })
+  faceImages.value = state.faces.map(face => ({
+    ...face,
+    config: { ...face.config }
+  }))
+
+  // 清除选择
+  if (transformer.value?.getNode()) {
+    transformer.value.getNode().nodes([])
+  }
+  selectedFace.value = null
+
+  setTimeout(() => {
+    isUndoRedo.value = false
+  }, 100)
 }
 
 const redo = () => {
-  if (!canRedo.value || !canvas.value) return
+  if (!canRedo.value) return
 
+  isUndoRedo.value = true
   historyIndex.value++
   const state = history.value[historyIndex.value]
 
-  canvas.value.loadFromJSON(state.objects, () => {
-    canvas.value.renderAll()
+  faceImages.value = state.faces.map(face => ({
+    ...face,
+    config: { ...face.config }
+  }))
+
+  // 清除选择
+  if (transformer.value?.getNode()) {
+    transformer.value.getNode().nodes([])
+  }
+  selectedFace.value = null
+
+  setTimeout(() => {
+    isUndoRedo.value = false
+  }, 100)
+}
+
+// 图片加载辅助函数
+const loadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
   })
 }
 
 // 缩放控制
 const zoomIn = () => {
-  if (zoomLevel.value < 3) {
-    zoomLevel.value = Math.min(3, zoomLevel.value * 1.2)
+  if (stageScale.value < 3) {
+    stageScale.value = Math.min(3, stageScale.value * 1.2)
   }
 }
 
 const zoomOut = () => {
-  if (zoomLevel.value > 0.1) {
-    zoomLevel.value = Math.max(0.1, zoomLevel.value / 1.2)
+  if (stageScale.value > 0.1) {
+    stageScale.value = Math.max(0.1, stageScale.value / 1.2)
   }
 }
 
 const resetZoom = () => {
-  zoomLevel.value = 1
-  panX.value = 0
-  panY.value = 0
+  stageScale.value = 1
+  stageX.value = 0
+  stageY.value = 0
 }
 
 const fitToScreen = () => {
-  if (!canvasContainer.value || !canvas.value) return
+  if (!canvasContainer.value) return
 
   const container = canvasContainer.value
   const containerWidth = container.clientWidth - 40
@@ -383,30 +478,83 @@ const fitToScreen = () => {
   const scaleX = containerWidth / canvasWidth.value
   const scaleY = containerHeight / canvasHeight.value
 
-  zoomLevel.value = Math.min(scaleX, scaleY, 1)
-  panX.value = 0
-  panY.value = 0
+  stageScale.value = Math.min(scaleX, scaleY, 1)
+  stageX.value = 0
+  stageY.value = 0
 }
 
 const actualSize = () => {
-  zoomLevel.value = 1
-  panX.value = 0
-  panY.value = 0
+  stageScale.value = 1
+  stageX.value = 0
+  stageY.value = 0
 }
 
-const centerCanvas = () => {
-  panX.value = 0
-  panY.value = 0
+const centerStage = () => {
+  stageX.value = 0
+  stageY.value = 0
 }
 
-// 修复的滚轮缩放
+// 滚轮缩放
 const handleWheel = (e) => {
-  e.preventDefault()
-  e.stopPropagation()
+  e.evt.preventDefault()
 
-  const delta = e.deltaY > 0 ? 0.9 : 1.1
-  const newZoom = Math.max(0.1, Math.min(3, zoomLevel.value * delta))
-  zoomLevel.value = newZoom
+  const scaleBy = 1.1
+  const stage = e.target.getStage()
+  const oldScale = stage.scaleX()
+  const pointer = stage.getPointerPosition()
+
+  const mousePointTo = {
+    x: (pointer.x - stage.x()) / oldScale,
+    y: (pointer.y - stage.y()) / oldScale,
+  }
+
+  const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy
+  const clampedScale = Math.max(0.1, Math.min(3, newScale))
+
+  stageScale.value = clampedScale
+  stageX.value = pointer.x - mousePointTo.x * clampedScale
+  stageY.value = pointer.y - mousePointTo.y * clampedScale
+}
+
+// 事件处理
+const handleStageMouseDown = (e) => {
+  // 点击空白区域取消选择
+  if (e.target === e.target.getStage()) {
+    if (transformer.value?.getNode()) {
+      transformer.value.getNode().nodes([])
+    }
+    selectedFace.value = null
+  }
+}
+
+const handleFaceClick = (e) => {
+  const face = e.target
+  selectedFace.value = face
+
+  // 设置变换器
+  if (transformer.value?.getNode()) {
+    transformer.value.getNode().nodes([face])
+  }
+
+  lastModified.value = new Date()
+}
+
+const handleFaceDragStart = (e) => {
+  selectedFace.value = e.target
+  // 确保变换器绑定到当前拖拽的对象
+  if (transformer.value?.getNode()) {
+    transformer.value.getNode().nodes([e.target])
+  }
+}
+
+const handleFaceDragEnd = (e) => {
+  lastModified.value = new Date()
+  saveState() // 添加状态保存
+}
+
+const handleFaceTransform = (e) => {
+  lastModified.value = new Date()
+  saveState() // 添加状态保存
 }
 
 // 全屏控制
@@ -424,27 +572,36 @@ const toggleFullscreen = () => {
 
 // 导出功能
 const handleExport = async (command) => {
-  if (!canvas.value || !canvasReady.value) return
+  if (!stage.value || !stageReady.value) return
 
   exporting.value = true
 
   try {
     const [format, quality] = command.split('-')
-    let options = {}
+    const stageNode = stage.value.getNode()
 
-    if (format === 'png') {
-      options = {
-        format: 'png',
-        quality: quality === 'high' ? 1.0 : 0.8
-      }
-    } else {
-      options = {
-        format: 'jpeg',
-        quality: quality === 'high' ? 0.95 : 0.8
-      }
+    // 保存当前选择状态
+    const currentSelection = selectedFace.value
+
+    // 临时取消选择以避免导出选择框
+    if (transformer.value?.getNode()) {
+      transformer.value.getNode().nodes([])
     }
+    selectedFace.value = null
 
-    const dataUrl = canvas.value.toDataURL(options)
+    // 等待一帧确保UI更新
+    await nextTick()
+
+    let pixelRatio = quality === 'high' ? 2 : 1
+    let mimeType = format === 'png' ? 'image/png' : 'image/jpeg'
+    let qualityValue = quality === 'high' ? 0.95 : 0.8
+
+    const dataUrl = stageNode.toDataURL({
+      mimeType,
+      quality: qualityValue,
+      pixelRatio
+    })
+
     const link = document.createElement('a')
     link.href = dataUrl
     link.download = `composed_image_${eventId}_${Date.now()}.${format === 'jpg' ? 'jpg' : 'png'}`
@@ -452,6 +609,12 @@ const handleExport = async (command) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+
+    // 恢复选择状态
+    if (currentSelection && transformer.value?.getNode()) {
+      selectedFace.value = currentSelection
+      transformer.value.getNode().nodes([currentSelection])
+    }
 
     ElMessage.success('图片导出成功')
 
@@ -465,9 +628,9 @@ const handleExport = async (command) => {
 
 // 工具函数
 const getSelectedObjectName = () => {
-  if (!selectedObject.value) return ''
-  if (selectedObject.value.layerType === 'background') return '背景图片'
-  return selectedObject.value.id ? `人脸 ${selectedObject.value.id}` : '未知对象'
+  if (!selectedFace.value) return ''
+  const id = selectedFace.value.attrs.id
+  return id ? `人脸 ${id}` : '未知对象'
 }
 
 const formatTime = (date) => {
@@ -481,18 +644,32 @@ const formatTime = (date) => {
 // 键盘事件
 const setupKeyboardEvents = () => {
   const handleKeyDown = (e) => {
-    // 防止在输入框中触发
+    // 检查是否在输入框中
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return
     }
 
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObject.value) {
+    // 阻止浏览器默认行为
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'z' || e.key === 'y') {
+        e.preventDefault()
+      }
+    }
+
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedFace.value) {
       e.preventDefault()
-      if (selectedObject.value.layerType !== 'background') {
-        canvas.value.remove(selectedObject.value)
-        selectedObject.value = null
-        canvas.value.renderAll()
-        saveState()
+      // 删除选中的人脸
+      const faceId = selectedFace.value.attrs.id
+      const index = faceImages.value.findIndex(f => f.id === faceId)
+      if (index > -1) {
+        faceImages.value.splice(index, 1)
+        selectedFace.value = null
+        if (transformer.value?.getNode()) {
+          transformer.value.getNode().nodes([])
+        }
+        loadedFacesCount.value--
+        lastModified.value = new Date()
+        saveState() // 添加状态保存
       }
     } else if (e.ctrlKey || e.metaKey) {
       if (e.key === 'z' && !e.shiftKey) {
@@ -511,15 +688,16 @@ const setupKeyboardEvents = () => {
     }
   }
 
-  document.addEventListener('keydown', handleKeyDown)
+  // 绑定到 window 确保能捕获到事件
+  window.addEventListener('keydown', handleKeyDown, true)
 
   return () => {
-    document.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('keydown', handleKeyDown, true)
   }
 }
 
-// 初始化Canvas
-const initCanvas = async () => {
+// 初始化Stage
+const initStage = async () => {
   try {
     loading.value = true
     loadingText.value = '正在初始化编辑器...'
@@ -532,33 +710,15 @@ const initCanvas = async () => {
     canvasHeight.value = bgInfo.height
     loadingProgress.value = 10
 
-    // 创建Canvas
-    loadingDetails.value = '创建画布'
+    // 等待下一帧确保DOM更新
     await nextTick()
-
-    canvas.value = new fabric.Canvas(canvasRef.value, {
-      width: canvasWidth.value,
-      height: canvasHeight.value,
-      backgroundColor: '#ffffff'
-    })
 
     loadingProgress.value = 20
 
     // 加载背景图
     loadingDetails.value = '加载背景图片'
     const bgUrl = await fetchBackground()
-
-    const bgImg = await fabric.FabricImage.fromURL(bgUrl)
-    bgImg.set({
-      left: 0,
-      top: 0,
-      selectable: false,
-      evented: false,
-      layerType: 'background',
-      id: 'background'
-    })
-
-    canvas.value.add(bgImg)
+    backgroundImage.value = await loadImage(bgUrl)
     loadingProgress.value = 40
 
     // 获取人脸信息
@@ -568,8 +728,7 @@ const initCanvas = async () => {
 
     if (facesInfo.length === 0) {
       loadingProgress.value = 100
-      canvasReady.value = true
-      saveState()
+      stageReady.value = true
       return
     }
 
@@ -581,67 +740,39 @@ const initCanvas = async () => {
       return async () => {
         const { filename, coordinates } = face
         const faceUrl = await fetchFaceImage(filename)
+        const img = await loadImage(faceUrl)
 
-        const img = await fabric.FabricImage.fromURL(faceUrl)
-
-        img.set({
-          left: coordinates.x1,
-          top: coordinates.y1,
-          scaleX: (coordinates.x2 - coordinates.x1) / img.width,
-          scaleY: (coordinates.y2 - coordinates.y1) / img.height,
+        return {
           id: `face_${index + 1}`,
-          layerType: 'face'
-        })
-
-        return img
+          config: {
+            id: `face_${index + 1}`,
+            image: img,
+            x: coordinates.x1,
+            y: coordinates.y1,
+            scaleX: (coordinates.x2 - coordinates.x1) / img.width,
+            scaleY: (coordinates.y2 - coordinates.y1) / img.height,
+            draggable: true,
+            name: 'face'
+          }
+        }
       }
     })
 
-    const faceImages = await loader.load(loadTasks, (completed, total) => {
+    const faces = await loader.load(loadTasks, (completed, total) => {
       const progress = 50 + (completed / total) * 40
       loadingProgress.value = progress
       loadingDetails.value = `加载人脸图片 ${completed}/${total}`
     })
 
     loadingProgress.value = 90
-    loadingDetails.value = '添加图层到画布'
-
-    // 添加到Canvas
-    faceImages.forEach(img => {
-      if (img) {
-        canvas.value.add(img)
-        loadedFacesCount.value++
-      }
-    })
-
-    loadingProgress.value = 95
     loadingDetails.value = '完成初始化'
 
-    // 渲染画布
-    canvas.value.renderAll()
-
-    // 设置事件监听
-    canvas.value.on('selection:created', (e) => {
-      selectedObject.value = e.target
-    })
-
-    canvas.value.on('selection:updated', (e) => {
-      selectedObject.value = e.target
-    })
-
-    canvas.value.on('selection:cleared', () => {
-      selectedObject.value = null
-    })
-
-    canvas.value.on('object:modified', () => {
-      saveState()
-    })
+    // 添加人脸到舞台
+    faceImages.value = faces
+    loadedFacesCount.value = faces.length
 
     loadingProgress.value = 100
-    canvasReady.value = true
-
-    // 保存初始状态
-    saveState()
+    stageReady.value = true
 
     // 自动适应屏幕
     setTimeout(() => {
@@ -649,6 +780,11 @@ const initCanvas = async () => {
     }, 500)
 
     console.log(`编辑器初始化完成，共加载 ${loadedFacesCount.value} 个人脸图层`)
+
+    // 保存初始状态
+    setTimeout(() => {
+      saveState()
+    }, 1000)
 
   } catch (error) {
     console.error('初始化失败:', error)
@@ -662,14 +798,11 @@ const initCanvas = async () => {
 
 // 生命周期
 onMounted(async () => {
-  await initCanvas()
+  await initStage()
   const cleanupKeyboard = setupKeyboardEvents()
 
   onBeforeUnmount(() => {
     cleanupKeyboard()
-    if (canvas.value) {
-      canvas.value.dispose()
-    }
   })
 })
 
@@ -680,12 +813,14 @@ document.addEventListener('fullscreenchange', () => {
 </script>
 
 <style scoped>
+/* 基础布局 */
 .editor-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  overflow: hidden;
 }
 
 /* 工具栏样式 */
@@ -693,50 +828,55 @@ document.addEventListener('fullscreenchange', () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: white;
-  border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   z-index: 1000;
+  backdrop-filter: blur(8px);
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-weight: 600;
-  color: #303133;
+  color: #1e293b;
 }
 
-.logo-area i {
-  font-size: 20px;
-  color: #409eff;
+.title {
+  font-size: 18px;
+  color: #334155;
+  font-weight: 700;
 }
 
 .center-tools {
   flex: 1;
   justify-content: center;
-  max-width: 600px;
+  max-width: 700px;
 }
 
 .zoom-controls, .action-controls, .view-controls, .export-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .zoom-display {
-  min-width: 60px;
-  font-size: 12px;
-  color: #606266;
+  min-width: 65px;
+  font-size: 13px;
+  color: #64748b;
   text-align: center;
-  font-weight: 500;
+  font-weight: 600;
+  background: rgba(148, 163, 184, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
 /* 主编辑区域 */
@@ -744,6 +884,7 @@ document.addEventListener('fullscreenchange', () => {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 .editor-main.fullscreen {
@@ -753,7 +894,7 @@ document.addEventListener('fullscreenchange', () => {
   width: 100vw;
   height: 100vh;
   z-index: 9999;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
 }
 
 /* 画布容器 */
@@ -761,36 +902,24 @@ document.addEventListener('fullscreenchange', () => {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
-.canvas-wrapper {
-  transition: transform 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.stage-wrapper {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-canvas {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: white;
-  max-width: calc(100% - 40px);
-  max-height: calc(100% - 40px);
-  cursor: grab;
-}
-
-canvas:active {
-  cursor: grabbing;
-}
-
-.canvas-loading {
-  opacity: 0.7;
-  pointer-events: none;
+.stage-wrapper:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 /* 加载状态 */
@@ -800,109 +929,119 @@ canvas:active {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(245, 247, 250, 0.95);
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(8px);
 }
 
 .loading-content {
   text-align: center;
-  padding: 32px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  min-width: 300px;
+  padding: 40px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  min-width: 350px;
+  border: 1px solid #e2e8f0;
 }
 
 .loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e4e7ed;
-  border-top: 4px solid #409eff;
+  width: 56px;
+  height: 56px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
+  margin: 0 auto 20px;
 }
 
 .loading-text {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 20px;
 }
 
 .progress-container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 15px;
+  margin-bottom: 12px;
 }
 
 .progress-bar {
   flex: 1;
-  height: 8px;
-  background: #e4e7ed;
-  border-radius: 4px;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #409eff, #79bbff);
-  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  border-radius: 6px;
   transition: width 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .progress-text {
-  font-size: 12px;
-  color: #606266;
-  min-width: 40px;
+  font-size: 13px;
+  color: #64748b;
+  min-width: 45px;
   text-align: right;
+  font-weight: 600;
 }
 
 .loading-details {
-  font-size: 12px;
-  color: #909399;
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 8px;
 }
 
 /* 画布控制工具 */
 .canvas-controls {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 20px;
+  right: 20px;
   z-index: 100;
 }
 
 .canvas-toolbar {
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 4px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  backdrop-filter: blur(8px);
 }
 
 /* 快捷键提示 */
 .shortcuts-hint {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
-  background: rgba(0, 0, 0, 0.8);
+  bottom: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%);
   color: white;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 13px;
   z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .shortcut-item {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .shortcut-item:last-child {
@@ -910,11 +1049,13 @@ canvas:active {
 }
 
 kbd {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* 状态栏 */
@@ -922,27 +1063,32 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: white;
-  border-top: 1px solid #e4e7ed;
-  font-size: 12px;
-  color: #606266;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
 }
 
 .status-left, .status-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .status-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-weight: 500;
 }
 
-.status-item i {
-  font-size: 14px;
+.status-item svg {
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
 }
 
 /* 动画 */
@@ -951,10 +1097,69 @@ kbd {
   100% { transform: rotate(360deg); }
 }
 
+/* 按钮样式优化 */
+:deep(.el-button) {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-button:hover) {
+  transform: translateY(-1px);
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+:deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #5b21b6 100%);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+:deep(.el-button-group .el-button) {
+  margin: 0;
+}
+
+:deep(.el-tag--info) {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  font-weight: 600;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .center-tools {
-    max-width: 400px;
+    max-width: 500px;
+  }
+
+  .toolbar-section {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .center-tools {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .shortcuts-hint {
+    display: none;
+  }
+
+  .canvas-container {
+    padding: 12px;
   }
 
   .toolbar-section {
@@ -962,74 +1167,45 @@ kbd {
   }
 }
 
-@media (max-width: 768px) {
-  .toolbar {
-    flex-wrap: wrap;
-    padding: 8px;
-  }
-
-  .center-tools {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    margin-top: 8px;
-  }
-
-  .shortcuts-hint {
-    display: none;
-  }
-
-  canvas {
-    max-width: calc(100% - 20px);
-    max-height: calc(100% - 20px);
-  }
-}
-
-/* Element Plus 组件样式覆盖 */
-:deep(.el-button--small) {
-  padding: 7px 15px;
-}
-
-:deep(.el-button-group .el-button) {
-  margin: 0;
-}
-
-:deep(.el-tag--small) {
-  height: 20px;
-}
-
-:deep(.el-tooltip__popper) {
-  font-size: 12px;
-}
-
 /* 深色模式支持 */
 @media (prefers-color-scheme: dark) {
   .editor-layout {
-    background: #1a1a1a;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
 
   .toolbar, .status-bar {
-    background: #2d2d2d;
-    border-color: #404040;
-    color: #e4e7ed;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  .title {
+    color: #f1f5f9;
   }
 
   .canvas-container {
-    background: #1a1a1a;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   }
 
-  canvas {
-    border-color: #404040;
+  .stage-wrapper {
+    border-color: #475569;
+    background: #0f172a;
   }
 
   .canvas-toolbar {
-    background: #2d2d2d;
-    border: 1px solid #404040;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-color: #475569;
   }
 
   .loading-content {
-    background: #2d2d2d;
-    color: #e4e7ed;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #e2e8f0;
+    border-color: #475569;
+  }
+
+  .zoom-display {
+    background: rgba(71, 85, 105, 0.3);
+    color: #cbd5e1;
   }
 }
 </style>
