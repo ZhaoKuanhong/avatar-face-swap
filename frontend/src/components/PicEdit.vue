@@ -75,7 +75,6 @@
         </div>
 
         <!-- Konva 画布 -->
-        <div class="stage-wrapper" v-show="!loading">
           <v-stage
               ref="stage"
               :config="stageConfig"
@@ -89,7 +88,9 @@
                   v-if="backgroundImage"
                   :config="backgroundConfig"
               />
+            </v-layer>
 
+            <v-layer ref="faceLayer">
               <!-- 人脸图片 -->
               <v-image
                   v-for="face in faceImages"
@@ -101,15 +102,16 @@
                   @dragend="handleFaceDragEnd"
                   @transformend="handleFaceTransform"
               />
+            </v-layer>
 
+            <v-layer ref="uiLayer">
               <!-- 变换控制器 -->
               <v-transformer
                   ref="transformer"
-                  :config="transformerConfig"
+                   :config="transformerConfig"
               />
             </v-layer>
           </v-stage>
-        </div>
 
         <!-- 画布控制工具 -->
         <div class="canvas-controls" v-show="stageReady && !loading">
@@ -533,9 +535,8 @@ const handleFaceClick = (e) => {
   clickedNode.moveToTop()
 
   // 设置变换器
-  if (transformer.value?.getNode()) {
-    transformer.value.getNode().nodes([face])
-  }
+  const transformerNode = transformer.value.getStage();
+  transformerNode.nodes([clickedNode]);
 
   lastModified.value = new Date()
 }
@@ -848,7 +849,7 @@ document.addEventListener('fullscreenchange', () => {
 .editor-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 87vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   overflow: hidden;
