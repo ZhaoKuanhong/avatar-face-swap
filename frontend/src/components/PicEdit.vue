@@ -245,7 +245,7 @@ const stageConfig = computed(() => ({
   scaleY: stageScale.value,
   x: stageX.value,
   y: stageY.value,
-  draggable: false
+  draggable: true
 }))
 
 // 背景图配置
