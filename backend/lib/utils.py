@@ -11,6 +11,16 @@ from itsdangerous import URLSafeTimedSerializer as Serializer, BadSignature, Sig
 from lib.common.constants import *
 from lib.db_utils import query_db, execute_db
 
+# 导入增强版人脸检测器
+try:
+    from lib.face_detection.enhanced_detector import detect_faces_in_image
+    ENHANCED_DETECTION_AVAILABLE = True
+    print('[Utils] ✓ 增强版人脸检测器可用（包含RetinaFace支持）')
+except ImportError as e:
+    ENHANCED_DETECTION_AVAILABLE = False
+    print(f'[Utils] ⚠ 增强版人脸检测器不可用: {e}')
+    print('[Utils] 将使用传统dlib检测器')
+
 token_serializer = Serializer(SECRET_KEY)
 
 
@@ -258,9 +268,115 @@ def get_logs(page=1, per_page=20, level=None, module=None, start_date=None, end_
         return {'logs': [], 'total': 0, 'page': page, 'per_page': per_page}
 
 
-def process_image_async(event_id, image_path):
+def process_image_enhanced(event_id, image_path, detection_strategy="balanced"):
+    try:
+        if not ENHANCED_DETECTION_AVAILABLE:
+            print("[Enhanced] 增强检测器不可用，回退到dlib方法")
+            return process_image(event_id, image_path)
+        
+        base_folder = os.path.join('event', str(event_id))
+        cropped_faces_folder = os.path.join(base_folder, CROPPED_FACES_FOLDER)
+        upload_folder = os.path.join(base_folder, 'upload')
+
+        os.makedirs(cropped_faces_folder, exist_ok=True)
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # 读取图像
+        img = cv2.imread(image_path)
+        if img is None:
+            log_activity(
+                level="ERROR",
+                module="图片处理",
+                action="增强人脸识别",
+                event_id=event_id,
+                details={"error": f"无法加载图像: {image_path}"}
+            )
+            return False
+
+        # 获取图像尺寸
+        height, width = img.shape[:2]
+        print(f"[Enhanced] 处理图像: {width}x{height}")
+
+        # 使用增强版人脸检测（优先RetinaFace）
+        faces_info = detect_faces_in_image(img, strategy=detection_strategy)
+        
+        # 如果检测结果不理想，尝试召回模式
+        if len(faces_info) < 3:  # 对于团建照，期望至少3个以上的人脸
+            print("[Enhanced] 检测到的人脸较少，尝试召回模式")
+            faces_info = detect_faces_in_image(img, strategy="recall")
+        
+        print(f"[Enhanced] 检测到 {len(faces_info)} 个人脸")
+
+        # 裁剪并保存人脸
+        for face_info in faces_info:
+            coords = face_info["coordinates"]
+            x1, y1, x2, y2 = coords["x1"], coords["y1"], coords["x2"], coords["y2"]
+            
+            # 裁剪人脸区域
+            cropped_face = img[y1:y2, x1:x2]
+            
+            if cropped_face.size > 0:
+                # 保存裁剪的人脸
+                output_path = os.path.join(cropped_faces_folder, face_info["filename"])
+                cv2.imwrite(output_path, cropped_face)
+
+        # 保存原始图像到事件目录
+        original_image_path = os.path.join(base_folder, 'input.jpg')
+        cv2.imwrite(original_image_path, img)
+
+        # 生成完整的输出数据（保持与原格式兼容）
+        output_data = {
+            "image_info": {
+                "width": width,
+                "height": height,
+                "filename": os.path.basename(image_path)
+            },
+            "faces": faces_info,
+            "detection_method": "enhanced",
+            "detection_strategy": detection_strategy
+        }
+
+        # 保存JSON文件
+        json_filename = os.path.join(base_folder, 'faces_info.json')
+        with open(json_filename, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=4, ensure_ascii=False)
+
+        log_activity(
+            level="INFO",
+            module="图片处理",
+            action="增强人脸识别完成",
+            event_id=event_id,
+            details={
+                "faces_count": len(faces_info),
+                "detection_method": "enhanced",
+                "strategy": detection_strategy,
+                "used_retinaface": True  # 标记使用了增强检测器
+            }
+        )
+
+        return True
+        
+    except Exception as e:
+        print(f"[Enhanced] 增强检测失败: {e}，回退到传统方法")
+        
+        log_activity(
+            level="WARNING",
+            module="图片处理",
+            action="增强检测失败回退",
+            event_id=event_id,
+            details={"error": str(e)}
+        )
+        
+        # 回退到传统方法
+        return process_image(event_id, image_path)
+
+
+def process_image_async(event_id, image_path, use_enhanced=True):
+    """异步处理图像"""
+    target_func = process_image_enhanced if (use_enhanced and ENHANCED_DETECTION_AVAILABLE) else process_image
+    
     thread = threading.Thread(
-        target=process_image,
+        target=target_func,
         args=(event_id, image_path)
     )
     thread.start()

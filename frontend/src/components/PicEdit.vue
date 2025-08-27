@@ -27,6 +27,19 @@
             <el-button @click="redo" :disabled="!canRedo" title="重做" :icon="Right"></el-button>
           </el-button-group>
         </div>
+
+        <!-- 手动添加人脸控制 -->
+        <div class="manual-face-controls">
+          <el-button 
+            size="small" 
+            @click="toggleManualFaceMode" 
+            :type="isManualFaceMode ? 'primary' : ''"
+            :icon="Plus"
+            title="手动添加人脸"
+          >
+            添加人脸
+          </el-button>
+        </div>
       </div>
 
       <div class="toolbar-section">
@@ -80,7 +93,11 @@
               :config="stageConfig"
               @wheel="handleWheel"
               @mousedown="handleStageMouseDown"
+              @mousemove="updateDrawingFace"
+              @mouseup="finishDrawingFace"
               @touchstart="handleStageMouseDown"
+              @touchmove="updateDrawingFace"
+              @touchend="finishDrawingFace"
           >
             <v-layer ref="bgLayer">
               <!-- 背景图 -->
@@ -109,6 +126,12 @@
               <v-transformer
                   ref="transformer"
                    :config="transformerConfig"
+              />
+              
+              <!-- 手动绘制人脸框 -->
+              <v-rect
+                  v-if="drawingRect"
+                  :config="drawingRect"
               />
             </v-layer>
           </v-stage>
@@ -144,6 +167,23 @@
           </div>
           <div class="shortcut-item">
             <kbd>+/-</kbd> 缩放按钮
+          </div>
+          <div class="shortcut-item" v-if="isManualFaceMode">
+            <kbd>拖拽</kbd> 绘制人脸框
+          </div>
+        </div>
+        
+        <!-- 手动添加模式提示 -->
+        <div class="manual-mode-hint" v-show="isManualFaceMode">
+          <div class="hint-content">
+            <div class="hint-icon">✨</div>
+            <div class="hint-text">
+              <strong>手动添加人脸模式</strong><br>
+              在图片上拖拽绘制矩形框选人脸区域
+            </div>
+            <div class="hint-actions">
+              <el-button size="small" @click="toggleManualFaceMode">退出模式</el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -221,6 +261,11 @@ const isFullscreen = ref(false)
 const showShortcuts = ref(false)
 const selectedFace = ref(null)
 const lastModified = ref(new Date())
+const isManualFaceMode = ref(false)
+const isDrawing = ref(false)
+const drawingStartPos = ref({ x: 0, y: 0 })
+const drawingCurrentPos = ref({ x: 0, y: 0 })
+const drawingRect = ref(null)
 
 // 缩放和视图
 const stageScale = ref(1)
@@ -247,7 +292,7 @@ const stageConfig = computed(() => ({
   scaleY: stageScale.value,
   x: stageX.value,
   y: stageY.value,
-  draggable: true
+  draggable: !isManualFaceMode.value // 手动添加人脸模式下禁用拖拽
 }))
 
 // 背景图配置
@@ -360,10 +405,9 @@ const fetchFaceImage = async (filename) => {
     return URL.createObjectURL(res.data)
   } catch (err) {
     console.warn(`User uploaded image ${filename} not found, using default`)
-    return '/default-face.png'
+    return '/default-face.png'  // 使用SVG默认头像
   }
 }
-
 // 历史记录管理
 const saveState = () => {
   if (isUndoRedo.value || !stageReady.value) return // 防止撤回/重做时保存状态
@@ -514,12 +558,22 @@ const handleWheel = (e) => {
   const clampedScale = Math.max(0.1, Math.min(3, newScale))
 
   stageScale.value = clampedScale
-  stageX.value = pointer.x - mousePointTo.x * clampedScale
-  stageY.value = pointer.y - mousePointTo.y * clampedScale
+  
+  // 在手动添加人脸模式下，保持画布位置不变，避免干扰绘制操作
+  if (!isManualFaceMode.value) {
+    stageX.value = pointer.x - mousePointTo.x * clampedScale
+    stageY.value = pointer.y - mousePointTo.y * clampedScale
+  }
 }
 
 // 事件处理
 const handleStageMouseDown = (e) => {
+  // 如果是手动添加人脸模式
+  if (isManualFaceMode.value && e.target === e.target.getStage()) {
+    startDrawingFace(e)
+    return
+  }
+  
   // 点击空白区域取消选择
   if (e.target === e.target.getStage()) {
     if (transformer.value?.getNode()) {
@@ -657,6 +711,197 @@ const handleExport = async (command) => {
     exporting.value = false;
   }
 };
+
+// 手动添加人脸相关函数
+const toggleManualFaceMode = () => {
+  isManualFaceMode.value = !isManualFaceMode.value
+  if (isManualFaceMode.value) {
+    // 进入手动模式时清除选择
+    if (transformer.value?.getNode()) {
+      transformer.value.getNode().nodes([])
+    }
+    selectedFace.value = null
+    
+    // 改变鼠标样式
+    const stageContainer = stage.value?.getNode()?.container()
+    if (stageContainer) {
+      stageContainer.style.cursor = 'crosshair'
+    }
+    
+    // 显示手动模式提示
+    ElMessage.info('已进入手动添加人脸模式，此时画布固定不可拖拽')
+  } else {
+    // 退出手动模式
+    cleanupDrawing()
+    const stageContainer = stage.value?.getNode()?.container()
+    if (stageContainer) {
+      stageContainer.style.cursor = 'default'
+    }
+    
+    ElMessage.success('已退出手动添加人脸模式，画布现在可以拖拽')
+  }
+}
+
+const startDrawingFace = (e) => {
+  if (!isManualFaceMode.value) return
+  
+  const stageNode = stage.value.getNode()
+  const pos = stageNode.getPointerPosition()
+  
+  // 转换屏幕坐标到画布坐标
+  const x = (pos.x - stageX.value) / stageScale.value
+  const y = (pos.y - stageY.value) / stageScale.value
+  
+  drawingStartPos.value = { x, y }
+  drawingCurrentPos.value = { x, y }
+  isDrawing.value = true
+  
+  // 创建绘制矩形
+  drawingRect.value = {
+    x: x,
+    y: y,
+    width: 0,
+    height: 0,
+    stroke: '#FF3377',
+    strokeWidth: 2,
+    fill: 'rgba(255, 51, 119, 0.2)',
+    dash: [5, 5],
+    listening: false
+  }
+}
+
+const updateDrawingFace = (e) => {
+  if (!isDrawing.value || !isManualFaceMode.value) return
+  
+  const stageNode = stage.value.getNode()
+  const pos = stageNode.getPointerPosition()
+  
+  // 转换屏幕坐标到画布坐标
+  const x = (pos.x - stageX.value) / stageScale.value
+  const y = (pos.y - stageY.value) / stageScale.value
+  
+  drawingCurrentPos.value = { x, y }
+  
+  if (drawingRect.value) {
+    const startX = drawingStartPos.value.x
+    const startY = drawingStartPos.value.y
+    
+    const rectX = Math.min(startX, x)
+    const rectY = Math.min(startY, y)
+    const rectW = Math.abs(x - startX)
+    const rectH = Math.abs(y - startY)
+    
+    drawingRect.value = {
+      ...drawingRect.value,
+      x: rectX,
+      y: rectY,
+      width: rectW,
+      height: rectH
+    }
+  }
+}
+
+const finishDrawingFace = async (e) => {
+  if (!isDrawing.value || !isManualFaceMode.value) return
+  
+  const rectX = drawingRect.value.x
+  const rectY = drawingRect.value.y
+  const rectW = drawingRect.value.width
+  const rectH = drawingRect.value.height
+  
+  // 检查矩形是否足够大
+  if (rectW < 20 || rectH < 20) {
+    ElMessage.warning('人脸区域太小，请绘制一个更大的区域')
+    cleanupDrawing()
+    return
+  }
+  
+  // 确保坐标在画布范围内
+  const x1 = Math.max(0, Math.round(rectX))
+  const y1 = Math.max(0, Math.round(rectY))
+  const x2 = Math.min(canvasWidth.value, Math.round(rectX + rectW))
+  const y2 = Math.min(canvasHeight.value, Math.round(rectY + rectH))
+  
+  try {
+    // 调用API添加人脸
+    const response = await apiClient.post(`/events/${eventId}/faces/add-manual`, {
+      x1, y1, x2, y2,
+      face_id: `manual_${Date.now()}`
+    })
+    
+    const faceInfo = response.data.face_info
+    
+    // 添加到本地人脸列表
+    await addManualFaceToStage(faceInfo)
+    
+    ElMessage.success('人脸添加成功！')
+    loadedFacesCount.value++
+    lastModified.value = new Date()
+    saveState()
+    
+  } catch (error) {
+    console.error('添加人脸失败:', error)
+    ElMessage.error('添加人脸失败：' + (error.response?.data?.error || '服务器错误'))
+  } finally {
+    cleanupDrawing()
+  }
+}
+
+const addManualFaceToStage = async (faceInfo) => {
+  try {
+    // 创建默认人脸图像（使用SVG占位符）
+    const defaultFaceUrl = '/default-face.png'  // 使用SVG默认头像
+    const img = await loadImage(defaultFaceUrl)
+    
+    const { coordinates } = faceInfo
+    
+    const newFace = {
+      id: faceInfo.face_id,      config: {
+        id: faceInfo.face_id,
+        image: img,
+        x: coordinates.x1,
+        y: coordinates.y1,
+        scaleX: (coordinates.x2 - coordinates.x1) / img.width,
+        scaleY: (coordinates.y2 - coordinates.y1) / img.height,
+        draggable: true,
+        name: 'face',
+        opacity: 0.7  // 手动添加的稍微透明，表示需要上传头像
+      }
+    }
+    
+    faceImages.value.push(newFace)
+    
+  } catch (error) {
+    console.error('添加人脸到舞台失败:', error)
+    // 使用简单的矩形作为占位符
+    const { coordinates } = faceInfo
+    
+    const newFace = {
+      id: faceInfo.face_id,
+      config: {
+        id: faceInfo.face_id,
+        x: coordinates.x1,
+        y: coordinates.y1,
+        width: coordinates.x2 - coordinates.x1,
+        height: coordinates.y2 - coordinates.y1,
+        fill: 'rgba(255, 51, 119, 0.3)',
+        stroke: '#FF3377',
+        strokeWidth: 2,
+        draggable: true,
+        name: 'face'
+      }
+    }
+    
+    faceImages.value.push(newFace)
+  }
+}
+
+const cleanupDrawing = () => {
+  isDrawing.value = false
+  drawingRect.value = null
+  drawingStartPos.value = { x: 0, y: 0 }
+  drawingCurrentPos.value = { x: 0, y: 0 }
+}
 
 // 工具函数
 const getSelectedObjectName = () => {
@@ -894,7 +1139,7 @@ document.addEventListener('fullscreenchange', () => {
   max-width: 700px;
 }
 
-.zoom-controls, .action-controls, .view-controls, .export-controls {
+.zoom-controls, .action-controls, .view-controls, .export-controls, .manual-face-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1069,6 +1314,61 @@ document.addEventListener('fullscreenchange', () => {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 手动添加模式提示 */
+.manual-mode-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(255, 51, 119, 0.95) 0%, rgba(255, 102, 153, 0.95) 100%);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(255, 51, 119, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideInDown 0.3s ease-out;
+}
+
+.hint-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hint-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.hint-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.hint-text strong {
+  font-size: 16px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.hint-actions {
+  flex-shrink: 0;
+}
+
+.hint-actions .el-button {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.hint-actions .el-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 .shortcut-item {
   margin-bottom: 8px;
   display: flex;
@@ -1129,6 +1429,17 @@ kbd {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes slideInDown {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* 按钮样式优化 */
 :deep(.el-button) {
   border-radius: 8px;
@@ -1171,6 +1482,10 @@ kbd {
   .toolbar-section {
     gap: 12px;
   }
+  
+  .manual-face-controls {
+    gap: 8px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1196,6 +1511,25 @@ kbd {
 
   .toolbar-section {
     gap: 8px;
+  }
+  
+  .manual-mode-hint {
+    position: fixed;
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    font-size: 13px;
+  }
+  
+  .hint-content {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .hint-text {
+    text-align: center;
   }
 }
 

@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request, send_from_directory, g, redirect
 from flask_cors import CORS
 import threading
+import cv2
+import os
+import json
 
 from lib.common.constants import ADMIN_PASSWORD
 from lib.utils import *
@@ -363,6 +366,123 @@ def delete_face(event_id, face_filename):
     except Exception as e:
         print(f"删除人脸失败: {e}")
         return jsonify(error=f'删除人脸失败: {str(e)}'), 500
+
+
+@app.route('/api/events/<int:event_id>/faces/add-manual', methods=['POST'])
+@requires_admin_permission
+def add_manual_face(event_id):
+    """手动添加人脸区域"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(error="未提供数据"), 400
+        
+        required_fields = ['x1', 'y1', 'x2', 'y2']
+        if not all(field in data for field in required_fields):
+            return jsonify(error=f"缺少必需字段: {required_fields}"), 400
+        
+        x1, y1, x2, y2 = data['x1'], data['y1'], data['x2'], data['y2']
+        import time
+        face_id = data.get('face_id', f'manual_{int(time.time())}')
+        
+        # 基础验证
+        if x1 >= x2 or y1 >= y2:
+            return jsonify(error="坐标不正确：x1应小于x2，y1应小于y2"), 400
+        
+        if x2 - x1 < 20 or y2 - y1 < 20:
+            return jsonify(error="人脸区域太小，最小尺寸为20x20像素"), 400
+        
+        # 读取原始图像进行验证
+        event_dir = os.path.join('event', str(event_id))
+        input_image_path = os.path.join(event_dir, 'input.jpg')
+        
+        if not os.path.exists(input_image_path):
+            return jsonify(error="原始图像不存在"), 404
+        
+        img = cv2.imread(input_image_path)
+        if img is None:
+            return jsonify(error="无法读取原始图像"), 500
+        
+        img_h, img_w = img.shape[:2]
+        
+        # 确保坐标在图像范围内
+        x1 = max(0, min(x1, img_w))
+        y1 = max(0, min(y1, img_h))
+        x2 = max(x1, min(x2, img_w))
+        y2 = max(y1, min(y2, img_h))
+        
+        # 裁剪人脸区域
+        face_roi = img[y1:y2, x1:x2]
+        
+        # 保存裁剪的人脸
+        cropped_faces_dir = os.path.join(event_dir, CROPPED_FACES_FOLDER)
+        os.makedirs(cropped_faces_dir, exist_ok=True)
+        
+        face_filename = f"{face_id}.jpg"
+        face_path = os.path.join(cropped_faces_dir, face_filename)
+        cv2.imwrite(face_path, face_roi)
+        
+        # 更新faces_info.json
+        faces_info_path = os.path.join(event_dir, 'faces_info.json')
+        
+        if os.path.exists(faces_info_path):
+            with open(faces_info_path, 'r', encoding='utf-8') as f:
+                faces_info = json.load(f)
+        else:
+            # 如果不存在，创建基础结构
+            faces_info = {
+                "image_info": {
+                    "width": img_w,
+                    "height": img_h,
+                    "filename": "input.jpg"
+                },
+                "faces": []
+            }
+        
+        # 添加新的人脸信息
+        new_face_info = {
+            "filename": face_filename,
+            "coordinates": {
+                "x1": int(x1),
+                "y1": int(y1),
+                "x2": int(x2),
+                "y2": int(y2)
+            },
+            "confidence": 1.0,
+            "manual": True,
+            "face_id": face_id
+        }
+        
+        faces_info["faces"].append(new_face_info)
+        
+        # 保存更新后的信息
+        with open(faces_info_path, 'w', encoding='utf-8') as f:
+            json.dump(faces_info, f, indent=4, ensure_ascii=False)
+        
+        # 记录日志
+        log_activity(
+            level="INFO",
+            module="图片处理",
+            action="手动添加人脸",
+            user_id="admin",
+            event_id=str(event_id),
+            details={
+                "face_id": face_id,
+                "coordinates": new_face_info["coordinates"],
+                "manual": True
+            }
+        )
+        
+        return jsonify({
+            'message': '人脸添加成功',
+            'face_info': new_face_info
+        }), 201
+        
+    except Exception as e:
+        print(f"手动添加人脸失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify(error=f'添加人脸失败: {str(e)}'), 500
 
 
 @app.route('/api/events/<event_id>/faces/<filename>')
