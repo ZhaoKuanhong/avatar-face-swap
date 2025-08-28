@@ -1,11 +1,7 @@
-from flask import Flask, jsonify, request, send_from_directory, g, redirect
+from flask import Flask, send_from_directory, redirect
 from flask_cors import CORS
-import threading
-import cv2
-import os
-import json
 
-from lib.common.constants import ADMIN_PASSWORD
+from lib.common.constants import *
 from lib.utils import *
 
 app = Flask(__name__)
