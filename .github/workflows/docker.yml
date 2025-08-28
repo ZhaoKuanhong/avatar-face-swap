@@ -1,0 +1,26 @@
+name: Docker CI
+on:
+  push:
+    branches:
+      - master # 触发工作流的分支
+    paths:
+      - "backend/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Build Docker image
+        run: |
+          docker build -t faspand/avatar-face-swap-backend:${{ github.sha }} ./backend
+          docker tag faspand/avatar-face-swap-backend:${{ github.sha }} faspand/avatar-face-swap-backend:latest
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push faspand/avatar-face-swap-backend:latest
+          docker push faspand/avatar-face-swap-backend:${{ github.sha }}
