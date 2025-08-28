@@ -3,7 +3,7 @@ FROM python:3.12.4
 WORKDIR /
 
 COPY requirements.txt .
-RUN apt-get update && apt-get install -y cmake
+RUN apt-get update && apt-get install -y cmake libgl1-mesa-glx libglib2.0-0
 RUN pip install -r requirements.txt
 RUN pip install gunicorn gevent
 
