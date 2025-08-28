@@ -1,5 +1,4 @@
 import json
-import os
 import threading
 
 import cv2
