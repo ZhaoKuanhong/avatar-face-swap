@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask, send_from_directory, redirect
 from flask_cors import CORS
 
@@ -663,3 +665,8 @@ def index():
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
+
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
