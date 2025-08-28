@@ -5,6 +5,7 @@ on:
       - main # 触发工作流的分支
     paths:
       - "backend/**"
+  workflow_dispatch: 
 jobs:
   build:
     runs-on: ubuntu-latest
