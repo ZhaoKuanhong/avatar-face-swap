@@ -81,6 +81,11 @@ const router = createRouter({
 //Global Route Guard
 router.beforeEach(async (to, from, next) => {
     const token = localStorage.getItem('token');
+    const queryToken = to.query.token;
+    if (queryToken) {
+        localStorage.setItem('token', queryToken);
+    }
+    const effectiveToken = queryToken || token;
 
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
@@ -89,7 +94,7 @@ router.beforeEach(async (to, from, next) => {
         return next();
     }
 
-    if (!token) {
+    if (!effectiveToken) {
         ElMessage.error('请先登录');
         return next('/event');
     }

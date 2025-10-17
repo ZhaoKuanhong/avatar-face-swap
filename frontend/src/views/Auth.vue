@@ -25,6 +25,9 @@
                         </span>
         </button>
       </div>
+      <div class="admin-login-link">
+        <a href="#" @click.prevent="adminLogin">管理员登录</a>
+      </div>
       <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     </div>
     <div class="music-notes">
@@ -59,6 +62,11 @@ const errorMessage = ref('');
 
 const goToAbout = () => {
       router.push('/about');
+};
+
+const adminLogin = () => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5001';
+  window.location.href = `${baseUrl}/api/login`;
 };
 
 const verifyToken = async () => {
@@ -293,6 +301,23 @@ body {
   width: 100%;
   animation: shake 0.5s;
   z-index: 11;
+}
+
+.admin-login-link {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.admin-login-link a {
+  color: #f0f0f0;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.admin-login-link a:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 .music-notes {

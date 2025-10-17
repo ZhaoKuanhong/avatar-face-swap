@@ -311,7 +311,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
 import {Plus, UploadFilled, View, Edit, Delete, Refresh, PictureFilled} from '@element-plus/icons-vue';
@@ -324,6 +324,7 @@ const loading = ref(true);
 const addLoading = ref(false);
 const eventList = ref([]);
 const router = useRouter();
+const route = useRoute();
 
 const isEditMode = ref(false); // false: 新建, true: 编辑
 
@@ -355,6 +356,12 @@ const handleResize = () => {
 };
 
 onMounted(() => {
+  const token = route.query.token
+  if (token) {
+    localStorage.setItem('token', token)
+    // 移除 URL 中的 query 参数，保持干净
+    router.replace({ path: route.path })
+  }
   window.addEventListener('resize', handleResize);
   fetchEvent();
 });
