@@ -1,13 +1,78 @@
 import logging
 
-from flask import Flask, send_from_directory, redirect
+from authlib.integrations.flask_client import OAuth
+from flask import Flask, send_from_directory, redirect, session, url_for, jsonify
 from flask_cors import CORS
 
-from lib.common.constants import *
 from lib.utils import *
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
 CORS(app)
+oauth = OAuth(app)
+
+# 从环境变量配置 Keycloak
+keycloak_client_id = os.environ.get('KEYCLOAK_CLIENT_ID')
+keycloak_client_secret = os.environ.get('KEYCLOAK_CLIENT_SECRET')
+keycloak_server_url = os.environ.get('KEYCLOAK_SERVER_URL')
+
+oauth.register(
+    name='keycloak',
+    client_id=keycloak_client_id,
+    client_secret=keycloak_client_secret,
+    server_metadata_url=keycloak_server_url,
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://localhost:5173')
+
+
+@app.route('/api/login')
+def login():
+    redirect_uri = url_for('auth', _external=True)
+    return oauth.keycloak.authorize_redirect(redirect_uri)
+
+
+@app.route('/api/auth')
+def auth():
+    token = oauth.keycloak.authorize_access_token()
+    userinfo = token.get('userinfo', {})
+    session['user'] = userinfo
+
+    # 从 Keycloak userinfo 中获取身份信息
+    user_email = userinfo.get('email')
+    username = userinfo.get('preferred_username', user_email)
+    role = 'admin'
+
+    jwt_token = create_jwt_token(username, role)
+
+    log_activity(
+        level="INFO",
+        module="用户认证",
+        action="SSO管理员登录",
+        user_id=username,
+        details={"email": user_email}
+    )
+
+    redirect_url = f"{(FRONTEND_BASE_URL)}/event/{role}?token={jwt_token}"
+    return redirect(redirect_url)
+
+
+@app.route('/api/logout')
+def logout():
+    session.pop('user', None)
+    keycloak_issuer = oauth.keycloak.server_metadata['issuer']
+    logout_endpoint = f"{keycloak_issuer}/protocol/openid-connect/logout"
+    post_logout_redirect_uri = url_for('index', _external=True)
+    return redirect(f"{logout_endpoint}?post_logout_redirect_uri={post_logout_redirect_uri}&client_id={oauth.keycloak.client_id}")
+
+
+@app.route('/api/profile')
+def profile():
+    user = session.get('user')
+    if not user:
+        return jsonify(error='Unauthorized'), 401
+    return jsonify(user)
 
 
 def allowed_file(filename):
@@ -23,7 +88,6 @@ def verify_token():
 
     token = data['token']
     if token == ADMIN_PASSWORD:
-        token_data = {'role': 'admin'}
 
         log_activity(
             level="INFO",
@@ -33,7 +97,8 @@ def verify_token():
             details={"ip": request.remote_addr}
         )
 
-        return jsonify(event_id='admin', token=token_serializer.dumps(token_data))
+        jwt_token = create_jwt_token('local_admin', 'admin')
+        return jsonify(event_id='admin', token=jwt_token)
     else:
         result = query_db(
             'SELECT event_id, description,is_open FROM event WHERE token = ?',
@@ -43,7 +108,6 @@ def verify_token():
 
         if result:
             if result['is_open']:
-                token_data = {'role': 'user', 'event_id': result['event_id']}
 
                 log_activity(
                     level="INFO",
@@ -53,8 +117,8 @@ def verify_token():
                     details={"ip": request.remote_addr}
                 )
 
-                return jsonify(event_id=result['event_id'], description=result['description'],
-                               token=token_serializer.dumps(token_data)), 200
+                jwt_token = create_jwt_token('local_user', role=result['event_id'])
+                return jsonify(event_id=result['event_id'], description=result['description'], token=jwt_token)
 
             else:
                 return jsonify(error='活动未开始或已结束采集'), 400
@@ -69,7 +133,7 @@ def get_events():
 
 
 @app.route('/api/events/<int:event_id>', methods=['POST'])
-@requires_event_permission
+@requires_admin_permission
 def add_or_update_event(event_id):
     data = request.get_json()
     if not data:
@@ -559,21 +623,25 @@ def event_page(event_id):
     return app.send_static_file('index.html')
 
 
-@app.route('/api/verify-token', methods=['GET'])
-def verify_token_api():
-    token = None
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        token = auth_header[7:]
+@app.route('/api/verify-token', methods=['POST'])
+def check_token():
+    data = request.get_json()
+    token = data.get('token')
 
     if not token:
-        return jsonify(error='未提供token'), 401
+        return jsonify(error='缺少 token'), 400
 
-    user_data = verify_auth_token(token)
-    if not user_data:
-        return jsonify(error='无效或过期的token'), 401
-
-    return jsonify(role=user_data.get('role'), event_id=user_data.get('event_id'))
+    try:
+        payload = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
+        return jsonify({
+            'user': payload['sub'],
+            'role': payload['role'],
+            'event_id': payload['role']
+        })
+    except jwt.ExpiredSignatureError:
+        return jsonify(error='Token 已过期'), 401
+    except jwt.InvalidTokenError:
+        return jsonify(error='无效 token'), 401
 
 
 @app.route('/api/logs', methods=['GET'])
@@ -660,7 +728,7 @@ def get_process_status(event_id):
 
 @app.route('/')
 def index():
-    return redirect("https://activity.gdutbandori.org/event")
+    return redirect(f"{FRONTEND_BASE_URL}/event")
 
 
 if __name__ == '__main__':

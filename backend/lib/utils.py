@@ -1,6 +1,7 @@
 import json
 import threading
-
+import jwt
+from datetime import datetime, timedelta
 import cv2
 import dlib
 import requests
@@ -22,6 +23,15 @@ except ImportError as e:
 
 token_serializer = Serializer(SECRET_KEY)
 
+def create_jwt_token(user_id: str, role: str):
+    payload = {
+        'sub': user_id,
+        'role': role,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(seconds=int(os.getenv('JWT_EXPIRES_IN', 3600)))
+    }
+    token = jwt.encode(payload, os.getenv('JWT_SECRET'), algorithm='HS256')
+    return token
 
 def load_events():
     """从 SQLite 数据库中加载 event 表的数据。"""
@@ -136,10 +146,10 @@ def requires_event_permission(func):
             return jsonify(error='缺少 token'), 401
         if token.startswith("Bearer "):
             token = token[7:]
-        user = verify_auth_token(token)
+        user = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
         if not user:
             return jsonify(error='无效或过期的 token'), 401
-        if user['role'] == 'admin' or str(user.get('event_id')) == str(event_id):
+        if user['role'] == 'admin' or str(user.get('role')) == str(event_id):
             return func(event_id, *args, **kwargs)
         else:
             return jsonify(error='无权限访问该资源'), 403
@@ -155,10 +165,20 @@ def requires_admin_permission(func):
             return jsonify(error='缺少 token'), 401
         if token.startswith("Bearer "):
             token = token[7:]
-        user = verify_auth_token(token)
+
+        user = None
+        # 尝试验证 JWT
+        try:
+            user = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
+        except Exception:
+            # 回退到 itsdangerous 验证
+            user = verify_auth_token(token)
+
         if not user:
             return jsonify(error='无效或过期的 token'), 401
-        if user.get('role') == 'admin':
+
+        role = user.get('role') if isinstance(user, dict) else user.get('role', None)
+        if role == 'admin':
             return func(*args, **kwargs)
         else:
             return jsonify(error='需要管理员权限'), 403
