@@ -100,7 +100,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     try {
-        const response = await apiClient.get('/verify-token');
+        const response = await apiClient.post('/verify-token', { token: effectiveToken });
         const userData = response.data;
 
         if (requiresAdmin && userData.role !== 'admin') {
