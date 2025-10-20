@@ -31,7 +31,7 @@
       >
         <el-form @submit.prevent label-position="top" class="dialog-form">
           <el-form-item label="event_id">
-            <el-input v-model="form.event_id" placeholder="请输入活动 ID" :disabled="isEditMode"/>
+            <el-input v-model="form.event_id" placeholder="请输入活动 ID" disabled/>
           </el-form-item>
           <el-form-item label="活动名称">
             <el-input v-model="form.description" placeholder="请输入活动名称" />
@@ -171,7 +171,7 @@
                   <el-button type="primary" @click="handleEventView(scope.row.event_id)" size="small" :icon="View">
                     查看
                   </el-button>
-                  <el-button type="primary" @click="editEvent(scope.row)" size="small" :icon="Edit">
+                  <el-button type="primary" @click="handleEditEvent(scope.row)" size="small" :icon="Edit">
                     编辑
                   </el-button>
                 </el-button-group>
@@ -267,7 +267,7 @@
                 </el-button>
                 <el-button
                     type="primary"
-                    @click="editEvent(event)"
+                    @click="handleEditEvent(event)"
                     :icon="Edit"
                     class="action-button"
                 >
@@ -413,14 +413,46 @@ const fetchEvent = async () => {
 
 // 添加新活动
 const handleAddEvent = () => {
-  form.event_id = eventList.value.length;
   dialogFormVisible.value = true;
 }
 
 const addEvent = async () => {
   try {
     addLoading.value = true;
-    await apiClient.post(`/events/${form.event_id}`, {
+    await apiClient.post(`/events`, {
+      description: form.description,
+      event_date: form.event_date,
+      token: form.token,
+    });
+
+    await fetchEvent();
+
+    ElNotification({
+      title: '成功',
+      message: '添加成功',
+      type: 'success',
+    });
+
+    dialogFormVisible.value = false;
+    form.event_id = '';
+    form.description = '';
+    form.event_date = '';
+    form.token = '';
+  } catch (error) {
+    ElNotification({
+      title: '错误',
+      message: '后端API无响应',
+      type: 'error',
+    });
+  } finally {
+    addLoading.value = false;
+  }
+};
+
+const editEvent = async () => {
+  try {
+    addLoading.value = true;
+    await apiClient.put(`/events/${form.event_id}`, {
       event_id: form.event_id,
       description: form.description,
       event_date: form.event_date,
@@ -452,7 +484,7 @@ const addEvent = async () => {
 };
 
 // 编辑活动
-const editEvent = (event) => {
+const handleEditEvent = (event) => {
   isEditMode.value = true;
   dialogFormVisible.value = true;
   form.event_id = event.event_id;

@@ -23,10 +23,11 @@ except ImportError as e:
 
 token_serializer = Serializer(SECRET_KEY)
 
-def create_jwt_token(user_id: str, role: str):
+def create_jwt_token(user_id: str, role: str, username: str = None):
     payload = {
         'sub': user_id,
         'role': role,
+        'username': username,
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + timedelta(seconds=int(os.getenv('JWT_EXPIRES_IN', 3600)))
     }
