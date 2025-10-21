@@ -25,7 +25,7 @@ def auth():
     username = userinfo.get('preferred_username')
     role = 'admin'
 
-    jwt_token = create_jwt_token(username, role)
+    jwt_token = create_jwt_token(username, role, user_email)
 
     log_activity(
         level="INFO",

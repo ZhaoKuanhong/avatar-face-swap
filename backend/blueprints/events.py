@@ -21,12 +21,12 @@ def allowed_file(filename):
 
 @events_bp.route('/api/events', methods=['GET'])
 @requires_admin_permission
-def get_events():
-    return jsonify(events=load_events())
+def get_events(user_email):
+    return jsonify(events=load_events(user_email))
 
 @events_bp.route('/api/events', methods=['POST'])
 @requires_admin_permission
-def add_event():
+def add_event(user_email):
     data = request.get_json()
     if not data:
         return jsonify(error="未提供任何数据"), 400
@@ -39,8 +39,8 @@ def add_event():
             if not all([description, token, event_date]):
                 return jsonify(error="新建事件需要 description、token、event_date"), 400
             isOpen = int(is_open) if is_open is not None else 0
-            last_id =  execute_db('INSERT INTO event (description, token, event_date, is_open) VALUES (?, ?, ?, ?)',
-                       [ description, token, event_date, isOpen])
+            last_id =  execute_db('INSERT INTO event (description, token, event_date, is_open, creator) VALUES (?, ?, ?, ?, ?)',
+                       [ description, token, event_date, isOpen, user_email])
             log_activity("INFO", "活动管理", "创建活动", event_id=last_id, details={"description": description})
             return jsonify(message="事件已创建",event_id=last_id), 201
     except Exception as e:

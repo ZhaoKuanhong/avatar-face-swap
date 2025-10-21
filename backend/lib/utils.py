@@ -23,29 +23,39 @@ except ImportError as e:
 
 token_serializer = Serializer(SECRET_KEY)
 
-def create_jwt_token(user_id: str, role: str, username: str = None):
+def create_jwt_token(user_id: str, role: str, user_email: str = None):
     payload = {
         'sub': user_id,
         'role': role,
-        'username': username,
+        'user_email': user_email,
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + timedelta(seconds=int(os.getenv('JWT_EXPIRES_IN', 3600)))
     }
     token = jwt.encode(payload, os.getenv('JWT_SECRET'), algorithm='HS256')
     return token
 
-def load_events():
-    """从 SQLite 数据库中加载 event 表的数据。"""
+def load_events(user_email=None):
+    """
+    从 SQLite 数据库中加载 event 表的数据。
+    如果提供了 user_email，则只加载该用户创建的活动。
+    """
+    query = 'SELECT event_id, description, event_date, is_open FROM event'
+    args = []
+
+    if user_email is not None:
+        query += ' WHERE creator = ?'
+        args.append(user_email)
+
     try:
-        rows = query_db('SELECT event_id, description, event_date, is_open FROM event')
-        events = []
-        for row in rows:
-            events.append({
+        rows = query_db(query, args=tuple(args))
+        events = [
+            {
                 "event_id": row["event_id"],
                 "description": row["description"],
                 "event_date": row["event_date"],
-                "is_open": bool(row["is_open"]) if row["is_open"] is not None else False  # 转为布尔值
-            })
+                "is_open": bool(row["is_open"])
+            } for row in rows
+        ]
         return events
     except Exception as e:
         print(f"[load_events] 数据库读取失败: {e}")
@@ -180,7 +190,7 @@ def requires_admin_permission(func):
 
         role = user.get('role') if isinstance(user, dict) else user.get('role', None)
         if role == 'admin':
-            return func(*args, **kwargs)
+            return func(*args, user_email=user.get('user_email'), **kwargs)
         else:
             return jsonify(error='需要管理员权限'), 403
 
