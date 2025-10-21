@@ -1,5 +1,6 @@
 <template>
   <body>
+  <div class="bg-layer"></div>
   <div class="container">
     <div class="login-card">
       <div class="avatar-container">
@@ -42,7 +43,7 @@
       </button>
     </div>
     <footer class="footer">
-      Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club
+      Copyright (C) 2025 Faspand & Mio for GDUT アイドル研究部
     </footer>
   </div>
   </body>
@@ -115,9 +116,20 @@ body {
   justify-content: center;
   height: 100vh;
   width: 100vw;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: url("@/assets/img/bg.jpg") no-repeat center center;
   background-size: cover;
-  position: relative;
+  filter: brightness(0.9);
+  z-index: 0;
 }
 
 .container {
@@ -128,6 +140,7 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  z-index: 1;
 }
 
 .login-card {
