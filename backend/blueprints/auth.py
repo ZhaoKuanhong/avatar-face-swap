@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, redirect, session, url_for, jsonify, request
-from extensions import oauth
-from lib.utils import log_activity, create_jwt_token, query_db, ADMIN_PASSWORD, verify_auth_token
+from lib.extensions import oauth
+from lib.utils import log_activity, create_jwt_token, query_db, ADMIN_PASSWORD
 import jwt
 
 auth_bp = Blueprint('auth', __name__)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import cv2
 import dlib
 import requests
+import inspect
 from flask import request, jsonify
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer as Serializer, BadSignature, SignatureExpired
@@ -190,7 +191,11 @@ def requires_admin_permission(func):
 
         role = user.get('role') if isinstance(user, dict) else user.get('role', None)
         if role == 'admin':
-            return func(*args, user_email=user.get('user_email'), **kwargs)
+            sig = inspect.signature(func)
+            if 'user_email' in sig.parameters:
+                return func(*args, user_email=user.get('user_email'), **kwargs)
+            else:
+                return func(*args, **kwargs)
         else:
             return jsonify(error='需要管理员权限'), 403
 

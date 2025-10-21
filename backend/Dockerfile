@@ -9,6 +9,7 @@ RUN pip install -r requirements.txt
 RUN pip install gunicorn gevent
 
 # 复制整个应用程序到 app 目录中
+COPY blueprints /app/blueprints
 COPY lib/ /app/lib
 COPY models /app/models
 COPY gunconf.py /app/

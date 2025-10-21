@@ -8,3 +8,4 @@ numpy~=2.2.6
 Authlib~=1.6.5
 flask-cors~=6.0.0
 PyJWT~=2.10.1
+python-dotenv~=1.1.1

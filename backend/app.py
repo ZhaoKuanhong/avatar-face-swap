@@ -4,7 +4,7 @@ from flask import Flask, redirect, current_app
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from extensions import oauth
+from lib.extensions import oauth
 from blueprints.auth import auth_bp
 from blueprints.events import events_bp
 
