@@ -1,5 +1,6 @@
 <template>
   <div class="about-container">
+    <div class="gradient-overlay"></div>
     <div class="about-content">
       <div class="back-button">
         <el-button @click="goBack" type="text" class="back-btn">
@@ -131,7 +132,7 @@
               </p>
             </div>
             <div class="version-info">
-              <span class="version-tag">v1.0.0</span>
+              <span class="version-tag">v4.0.0-beta</span>
             </div>
           </div>
         </el-card>
@@ -172,6 +173,25 @@ const goBack = () => {
   overflow-x: hidden;
 }
 
+.gradient-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(202, 169, 168, 0.1) 0%,
+    rgba(131, 198, 233, 0.1) 20%,
+    rgba(244, 192, 137, 0.1) 40%,
+    rgba(238, 169, 150, 0.1) 60%,
+    rgba(233, 174, 178, 0.1) 80%,
+    rgba(234, 149, 152, 0.1) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
 .about-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -184,16 +204,26 @@ const goBack = () => {
 }
 
 .back-btn {
-  color: #FF3377;
+  color: #C41E3A;
   font-size: 16px;
   padding: 8px 16px;
   border-radius: 20px;
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
+  background: rgba(196, 30, 58, 0.05);
 }
 
 .back-btn:hover {
-  background: rgba(255, 51, 119, 0.1);
+  background: linear-gradient(
+    90deg,
+    rgba(202, 169, 168, 0.3),
+    rgba(131, 198, 233, 0.3),
+    rgba(244, 192, 137, 0.3),
+    rgba(238, 169, 150, 0.3),
+    rgba(233, 174, 178, 0.3),
+    rgba(234, 149, 152, 0.3)
+  );
   transform: translateX(-5px);
+  color: white;
 }
 
 /* 页面头部 */
@@ -216,7 +246,7 @@ const goBack = () => {
 
 .header-decoration .note {
   position: absolute;
-  color: rgba(255, 51, 119, 0.1);
+  color: rgba(196, 30, 58, 0.1);
   font-size: 3rem;
   animation: float 6s ease-in-out infinite;
 }
@@ -242,9 +272,9 @@ const goBack = () => {
 .page-title {
   font-size: 3rem;
   font-weight: bold;
-  color: #FF3377;
+  color: #C41E3A;
   margin-bottom: 8px;
-  text-shadow: 0 2px 4px rgba(255, 51, 119, 0.1);
+  text-shadow: 0 2px 4px rgba(196, 30, 58, 0.1);
   position: relative;
   z-index: 2;
 }
@@ -267,13 +297,13 @@ const goBack = () => {
 .section-card {
   border-radius: 16px;
   border: none;
-  box-shadow: 0 8px 24px rgba(255, 51, 119, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.1);
+  transition: all 0.4s ease;
 }
 
 .section-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(255, 51, 119, 0.15);
+  box-shadow: 0 12px 32px rgba(196, 30, 58, 0.15);
 }
 
 .section-title {
@@ -287,7 +317,7 @@ const goBack = () => {
 
 .section-title i {
   margin-right: 10px;
-  color: #FF3377;
+  color: #C41E3A;
   font-size: 1.6rem;
 }
 
@@ -308,7 +338,7 @@ const goBack = () => {
   border-radius: 50%;
   object-fit: cover;
   border: 4px solid #FFE8F1;
-  box-shadow: 0 8px 20px rgba(255, 51, 119, 0.2);
+  box-shadow: 0 8px 20px rgba(196, 30, 58, 0.2);
 }
 
 .club-info {
@@ -317,7 +347,7 @@ const goBack = () => {
 
 .club-name {
   font-size: 2rem;
-  color: #FF3377;
+  color: #C41E3A;
   margin-bottom: 15px;
   font-weight: bold;
 }
@@ -339,15 +369,26 @@ const goBack = () => {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(255, 51, 119, 0.05);
+  background: rgba(196, 30, 58, 0.05);
   border-radius: 20px;
   font-size: 0.9rem;
   color: #333;
+  transition: all 0.4s ease;
+}
+
+.feature-item:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(202, 169, 168, 0.2),
+    rgba(131, 198, 233, 0.2),
+    rgba(244, 192, 137, 0.2)
+  );
+  transform: translateY(-2px);
 }
 
 .feature-item i {
   margin-right: 8px;
-  color: #FF3377;
+  color: #C41E3A;
 }
 
 /* 项目介绍部分 */
@@ -371,7 +412,13 @@ const goBack = () => {
   padding: 12px 16px;
   background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
   border-radius: 8px;
-  border-left: 4px solid #FF3377;
+  border-left: 4px solid #C41E3A;
+  transition: all 0.4s ease;
+}
+
+.tech-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.1);
 }
 
 .tech-label {
@@ -396,13 +443,19 @@ const goBack = () => {
   padding: 20px;
   background: linear-gradient(135deg, #fafbfc 0%, #fff 100%);
   border-radius: 12px;
-  border: 1px solid rgba(255, 51, 119, 0.1);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  transition: all 0.4s ease;
 }
 
 .developer-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(255, 51, 119, 0.15);
+  box-shadow: 0 8px 20px rgba(196, 30, 58, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(202, 169, 168, 0.05),
+    rgba(131, 198, 233, 0.05),
+    rgba(244, 192, 137, 0.05)
+  );
 }
 
 .avatar-container {
@@ -426,7 +479,7 @@ const goBack = () => {
   left: -8px;
   right: -8px;
   bottom: -8px;
-  border: 3px solid #FF3377;
+  border: 3px solid #C41E3A;
   border-radius: 50%;
   opacity: 0.6;
   animation: pulse 3s ease-in-out infinite;
@@ -441,7 +494,7 @@ const goBack = () => {
 
 .developer-role {
   font-size: 1rem;
-  color: #FF3377;
+  color: #C41E3A;
   margin-bottom: 15px;
   font-weight: 500;
 }
@@ -461,12 +514,19 @@ const goBack = () => {
 }
 
 .skill-tag {
-  background: rgba(255, 51, 119, 0.1);
-  color: #FF3377;
+  background: rgba(196, 30, 58, 0.1);
+  color: #C41E3A;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.skill-tag:hover {
+  background: #C41E3A;
+  color: white;
+  transform: scale(1.05);
 }
 
 /* 版权信息部分 */
@@ -497,12 +557,24 @@ const goBack = () => {
 }
 
 .version-tag {
-  background: #FF3377;
+  background: linear-gradient(90deg, #C41E3A 0%, #E63462 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  transition: all 0.4s ease;
+}
+
+.version-tag:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(202, 169, 168, 0.9),
+    rgba(131, 198, 233, 0.9),
+    rgba(244, 192, 137, 0.9)
+  );
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 /* 背景装饰 */
@@ -525,7 +597,7 @@ const goBack = () => {
 
 .bg-note {
   position: absolute;
-  color: rgba(255, 51, 119, 0.05);
+  color: rgba(196, 30, 58, 0.05);
   font-size: 4rem;
   animation: floatBg 20s ease-in-out infinite;
 }

@@ -1,6 +1,7 @@
 <template>
   <body>
   <div class="bg-layer"></div>
+  <div class="gradient-overlay"></div>
   <div class="container">
     <div class="login-card">
       <div class="avatar-container">
@@ -128,7 +129,25 @@ body {
   height: 100%;
   background: url("@/assets/img/bg.jpg") no-repeat center center;
   background-size: cover;
-  filter: brightness(0.9);
+  filter: brightness(0.98);
+  z-index: 0;
+}
+
+.gradient-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(202, 169, 168, 0.15) 0%,
+    rgba(131, 198, 233, 0.15) 20%,
+    rgba(244, 192, 137, 0.15) 40%,
+    rgba(238, 169, 150, 0.15) 60%,
+    rgba(233, 174, 178, 0.15) 80%,
+    rgba(234, 149, 152, 0.15) 100%
+  );
   z-index: 0;
 }
 
@@ -145,7 +164,7 @@ body {
 
 .login-card {
   backdrop-filter: blur(10px);
-  background: rgba(255, 51, 119, 0.15);
+  background: rgba(196, 30, 58, 0.25);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -153,16 +172,16 @@ body {
   padding: 40px 30px;
   width: 350px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 25px rgba(255, 51, 119, 0.15);
+  box-shadow: 0 10px 25px rgba(196, 30, 58, 0.15);
   transition: all 0.3s ease;
   animation: fadeIn 0.8s ease-out;
   position: relative;
-  z-index: 10; /* 确保卡片在音符上方 */
+  z-index: 10;
 }
 
 .login-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(255, 51, 119, 0.25);
+  box-shadow: 0 15px 30px rgba(196, 30, 58, 0.25);
 }
 
 .avatar-container {
@@ -174,7 +193,7 @@ body {
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  box-shadow: 0 5px 15px rgba(255, 51, 119, 0.2);
+  box-shadow: 0 5px 15px rgba(196, 30, 58, 0.2);
 }
 
 .avatar-logo {
@@ -254,30 +273,65 @@ body {
 .verify-btn {
   width: 100%;
   height: 50px;
-  background: #FF3377;
+  background: linear-gradient(
+    90deg,
+    #C41E3A 0%,
+    #E63462 50%,
+    #C41E3A 100%
+  );
+  background-size: 200% 100%;
+  background-position: 0% 0%;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.4s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative; /* 确保相对定位 */
-  z-index: 12; /* 提高 z-index 确保可点击 */
+  position: relative;
+  z-index: 12;
 }
 
 .verify-btn:hover:not(:disabled) {
-  background: #FF1166;
+  background: linear-gradient(
+    90deg,
+    #caa9a8 0%,
+    #83c6e9 16.67%,
+    #f4c089 33.33%,
+    #eea996 50%,
+    #e9aeb2 66.67%,
+    #ea9598 83.33%,
+    #caa9a8 100%
+  );
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 51, 119, 0.4);
+  box-shadow: 0 5px 20px rgba(196, 30, 58, 0.4);
+}
+
+.verify-btn:active:not(:disabled) {
+  transform: translateY(0px);
+  box-shadow: 0 2px 10px rgba(196, 30, 58, 0.6);
 }
 
 .verify-btn:disabled {
-  background: rgba(255, 51, 119, 0.5);
+  background: rgba(196, 30, 58, 0.5);
   cursor: not-allowed;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
 }
 
 .loading-indicator {
@@ -386,16 +440,16 @@ body {
 }
 
 .about-btn {
-  background: linear-gradient(45deg, rgba(255, 51, 119, 0.8), rgba(255, 102, 153, 0.8));
-  border: 1px solid rgba(255, 51, 119, 0.6);
+  background: linear-gradient(45deg, rgba(196, 30, 58, 0.8), rgba(230, 52, 98, 0.8));
+  border: 1px solid rgba(196, 30, 58, 0.6);
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
   backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 51, 119, 0.3);
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -412,10 +466,23 @@ body {
 }
 
 .about-btn:hover {
-  background: linear-gradient(45deg, #FF3377, #ff6699);
-  border-color: #FF3377;
-  box-shadow: 0 6px 20px rgba(255, 51, 119, 0.4);
+  background: linear-gradient(
+    45deg,
+    rgba(202, 169, 168, 0.9),
+    rgba(131, 198, 233, 0.9),
+    rgba(244, 192, 137, 0.9),
+    rgba(238, 169, 150, 0.9),
+    rgba(233, 174, 178, 0.9),
+    rgba(234, 149, 152, 0.9)
+  );
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
   transform: translateY(-3px);
+}
+
+.about-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(196, 30, 58, 0.5);
 }
 
 @keyframes float {
@@ -486,11 +553,11 @@ body {
   }
 
   .verify-btn {
-    background: #FF4488;
+    background: #E63462;
   }
 
   .verify-btn:hover:not(:disabled) {
-    background: #FF3377;
+    background: #C41E3A;
   }
 }
 </style>
