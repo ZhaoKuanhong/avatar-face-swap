@@ -58,7 +58,7 @@
             <el-button @click="dialogFormVisible = false" class="cancel-btn">取消</el-button>
             <el-button
                 type="primary"
-                @click="addEvent"
+                :@click="isEditMode ? 'editEvent' : 'addEvent'"
                 :loading="addLoading"
                 class="confirm-btn"
             >
