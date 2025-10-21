@@ -21,4 +21,4 @@ ENV FLASK_APP=app.py
 EXPOSE 5000
 
 # 启动 Flask 应用
-CMD ["gunicorn", "-c", "gunconf.py", "app:app"]
+CMD ["gunicorn", "-c", "gunconf.py", "app:create_app()"]
