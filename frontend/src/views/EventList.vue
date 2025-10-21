@@ -58,7 +58,7 @@
             <el-button @click="dialogFormVisible = false" class="cancel-btn">取消</el-button>
             <el-button
                 type="primary"
-                :@click="isEditMode ? 'editEvent' : 'addEvent'"
+                @click="isEditMode ? editEvent() : addEvent()"
                 :loading="addLoading"
                 class="confirm-btn"
             >
@@ -525,7 +525,7 @@ const dialogClose = () => {
 // 更新活动开关状态
 const updateEventStatus = async (eventId, newVal) => {
   try {
-    await apiClient.post(`/events/${eventId}`, {
+    await apiClient.put(`/events/${eventId}`, {
       is_open: newVal
     })
     ElMessage.success('状态已更新')
