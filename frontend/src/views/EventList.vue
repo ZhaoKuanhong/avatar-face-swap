@@ -673,7 +673,7 @@ const generateRandomPassword = () => {
 /* 基础布局 */
 .el-main {
   padding: 20px;
-  background-color: #f5f7f9;
+  background: transparent;
   min-height: calc(100vh - 140px);
 }
 
@@ -684,16 +684,19 @@ const generateRandomPassword = () => {
   align-items: flex-start;
   margin-bottom: 24px;
   padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
 }
 
 .page-header h1.page-title {
   font-size: 1.8rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #C41E3A;
   margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(196, 30, 58, 0.1);
 }
 
 .page-subtitle {
@@ -713,14 +716,27 @@ const generateRandomPassword = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: linear-gradient(90deg, #C41E3A, #E63462);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.3);
+  transition: all 0.3s ease;
+}
+
+.add-button:hover {
+  background: linear-gradient(90deg, #E63462, #FF3377);
+  box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+  transform: translateY(-2px);
 }
 
 /* 表格区域 */
 .table-section {
-  background: white;
-  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
 }
 
 .desktop-table {
@@ -756,15 +772,17 @@ const generateRandomPassword = () => {
 }
 
 .event-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.1);
   transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(8px);
 }
 
 .event-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(255, 51, 119, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(196, 30, 58, 0.2);
 }
 
 .card-header {
@@ -870,19 +888,21 @@ const generateRandomPassword = () => {
 /* Element Plus 样式覆盖 */
 
 :deep(.el-button--success) {
-  background-color: #4CAF50;
-  border-color: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  border: none;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 :deep(.el-button--success:hover) {
-  background-color: #45a049;
-  border-color: #45a049;
+  background: linear-gradient(135deg, #45a049, #5cb85c);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+  transform: translateY(-1px);
 }
 
 :deep(.el-card__header) {
   padding: 16px 20px;
-  background: rgba(255, 51, 119, 0.02);
-  border-bottom: 1px solid rgba(255, 51, 119, 0.1);
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.08), rgba(230, 52, 98, 0.08));
+  border-bottom: 1px solid rgba(196, 30, 58, 0.15);
 }
 
 :deep(.el-card__body) {
@@ -1112,8 +1132,8 @@ const generateRandomPassword = () => {
   }
 
   :deep(.el-card__header) {
-    background: rgba(255, 51, 119, 0.05);
-    border-bottom-color: rgba(255, 51, 119, 0.2);
+    background: rgba(196, 30, 58, 0.05);
+    border-bottom-color: rgba(196, 30, 58, 0.2);
   }
 }
 

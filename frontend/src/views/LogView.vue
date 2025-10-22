@@ -516,7 +516,7 @@ const getLogLevelType = (level) => {
 /* 基础布局 */
 .log-container {
   padding: 20px;
-  background-color: #f5f7f9;
+  background: transparent;
   min-height: calc(100vh - 140px);
 }
 
@@ -527,16 +527,19 @@ const getLogLevelType = (level) => {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
 }
 
 .header-content h1.page-title {
   font-size: 1.8rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #C41E3A;
   margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(196, 30, 58, 0.1);
 }
 
 .page-subtitle {
@@ -556,15 +559,30 @@ const getLogLevelType = (level) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: linear-gradient(90deg, #C41E3A, #E63462);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.3);
+  transition: all 0.3s ease;
+}
+
+.refresh-button:hover {
+  background: linear-gradient(90deg, #E63462, #FF3377);
+  box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+  transform: translateY(-2px);
 }
 
 /* 筛选器 */
 .filter-card {
   margin-bottom: 20px;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: visible;
   position: relative;
   z-index: 2;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
 }
 
 .filter-header {
@@ -626,9 +644,13 @@ const getLogLevelType = (level) => {
 /* 日志表格区域 */
 .log-table-card {
   margin-bottom: 20px;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
   z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
 }
 
 .table-header {
@@ -669,15 +691,17 @@ const getLogLevelType = (level) => {
 }
 
 .log-card {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  background: white;
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(8px);
   transition: all 0.3s ease;
 }
 
 .log-card:hover {
-  box-shadow: 0 2px 8px rgba(255, 51, 119, 0.1);
-  border-color: rgba(255, 51, 119, 0.2);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.15);
+  border-color: rgba(196, 30, 58, 0.2);
+  transform: translateY(-2px);
 }
 
 .log-card-header {
@@ -685,8 +709,8 @@ const getLogLevelType = (level) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  background: rgba(255, 51, 119, 0.02);
+  border-bottom: 1px solid rgba(196, 30, 58, 0.1);
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.06), rgba(230, 52, 98, 0.06));
 }
 
 .log-time {
@@ -713,7 +737,8 @@ const getLogLevelType = (level) => {
 }
 
 .log-module {
-  color: #FF3377;
+  color: #C41E3A;
+  font-weight: 600;
 }
 
 .log-separator {
@@ -845,17 +870,20 @@ const getLogLevelType = (level) => {
 
 /* Element Plus 样式覆盖 */
 :deep(.el-button--primary) {
-  background-color: #FF3377;
-  border-color: #FF3377;
+  background: linear-gradient(135deg, #C41E3A, #E63462);
+  border: none;
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 :deep(.el-button--primary:hover) {
-  background-color: #FF1166;
-  border-color: #FF1166;
+  background: linear-gradient(135deg, #E63462, #FF3377);
+  box-shadow: 0 6px 16px rgba(196, 30, 58, 0.4);
+  transform: translateY(-1px);
 }
 
 :deep(.el-pagination .el-pager .is-active) {
-  color: #FF3377;
+  background-color: #C41E3A;
+  color: white;
 }
 
 :deep(.date-picker-popper) {
@@ -863,8 +891,8 @@ const getLogLevelType = (level) => {
 }
 
 :deep(.el-card__header) {
-  background: rgba(255, 51, 119, 0.02);
-  border-bottom: 1px solid rgba(255, 51, 119, 0.1);
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.08), rgba(230, 52, 98, 0.08));
+  border-bottom: 1px solid rgba(196, 30, 58, 0.15);
 }
 
 /* 平板适配 */

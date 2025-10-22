@@ -1095,7 +1095,7 @@ document.addEventListener('fullscreenchange', () => {
   display: flex;
   flex-direction: column;
   height: 87vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  background: linear-gradient(135deg, rgba(255, 236, 242, 0.3) 0%, rgba(255, 245, 250, 0.3) 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   overflow: hidden;
 }
@@ -1106,11 +1106,11 @@ document.addEventListener('fullscreenchange', () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  border-bottom: 1px solid rgba(196, 30, 58, 0.15);
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.1);
   z-index: 1000;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .toolbar-section {
@@ -1129,8 +1129,9 @@ document.addEventListener('fullscreenchange', () => {
 
 .title {
   font-size: 18px;
-  color: #334155;
+  color: #C41E3A;
   font-weight: 700;
+  text-shadow: 0 2px 4px rgba(196, 30, 58, 0.1);
 }
 
 .center-tools {
@@ -1179,7 +1180,7 @@ document.addEventListener('fullscreenchange', () => {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, rgba(255, 245, 250, 0.5) 0%, rgba(255, 236, 242, 0.5) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1396,12 +1397,12 @@ kbd {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-top: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  border-top: 1px solid rgba(196, 30, 58, 0.15);
   font-size: 13px;
   color: #64748b;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 -4px 16px rgba(196, 30, 58, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .status-left, .status-right {
@@ -1452,14 +1453,14 @@ kbd {
 }
 
 :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #C41E3A 0%, #E63462 100%);
   border: none;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 :deep(.el-button--primary:hover) {
-  background: linear-gradient(135deg, #2563eb 0%, #5b21b6 100%);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #E63462 0%, #FF3377 100%);
+  box-shadow: 0 6px 16px rgba(196, 30, 58, 0.4);
 }
 
 :deep(.el-button-group .el-button) {
@@ -1467,9 +1468,9 @@ kbd {
 }
 
 :deep(.el-tag--info) {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-  border-color: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.1) 0%, rgba(230, 52, 98, 0.1) 100%);
+  border-color: rgba(196, 30, 58, 0.2);
+  color: #C41E3A;
   font-weight: 600;
 }
 

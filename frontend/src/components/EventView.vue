@@ -420,7 +420,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .event-view-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffecf2 0%, #fff5fa 100%);
+  background: transparent;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -491,8 +491,10 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   border-radius: 16px;
   overflow: hidden;
-  border: none;
-  box-shadow: 0 8px 24px rgba(255, 51, 119, 0.1);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(10px);
 }
 
 .card-header {
@@ -500,7 +502,7 @@ onBeforeUnmount(() => {
   align-items: center;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #FF3377;
+  color: #C41E3A;
 }
 
 .card-header i {
@@ -567,17 +569,21 @@ onBeforeUnmount(() => {
 }
 
 .loading-container {
-  background: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   padding: 40px;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
 }
 
 .empty-container {
-  background: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   padding: 40px;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.1);
   text-align: center;
 }
 
@@ -595,15 +601,17 @@ onBeforeUnmount(() => {
 
 .face-card {
   border-radius: 16px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.1);
   transition: all 0.3s ease;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(8px);
 }
 
 .face-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(255, 51, 119, 0.15);
+  box-shadow: 0 12px 32px rgba(196, 30, 58, 0.2);
 }
 
 .face-card-header {
@@ -740,8 +748,10 @@ onBeforeUnmount(() => {
   max-width: 600px;
   margin: 0 auto;
   border-radius: 16px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(255, 51, 119, 0.1);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+  box-shadow: 0 8px 24px rgba(196, 30, 58, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(10px);
 }
 
 .stats-content {
@@ -759,8 +769,9 @@ onBeforeUnmount(() => {
 .stat-number {
   font-size: 2rem;
   font-weight: bold;
-  color: #FF3377;
+  color: #C41E3A;
   margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(196, 30, 58, 0.1);
 }
 
 .stat-label {
@@ -845,8 +856,8 @@ onBeforeUnmount(() => {
 }
 
 :deep(.el-card__header) {
-  background: rgba(255, 51, 119, 0.05);
-  border-bottom: 1px solid rgba(255, 51, 119, 0.1);
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.08), rgba(230, 52, 98, 0.08));
+  border-bottom: 1px solid rgba(196, 30, 58, 0.15);
   padding: 16px 20px;
 }
 
