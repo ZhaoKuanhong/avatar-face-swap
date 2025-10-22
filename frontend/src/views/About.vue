@@ -125,7 +125,7 @@
           <div class="copyright-content">
             <div class="copyright-main">
               <p class="copyright-text">
-                Copyright © 2025 Faspand & Mio for GDUT BanGDream Fan Club
+                Copyright © 2025 Faspand & Mio for 広東工業大学アイドル研究部
               </p>
               <p class="copyright-disclaimer-a">
                 広東工業大学アイドル研究部は非営利団体であり。
