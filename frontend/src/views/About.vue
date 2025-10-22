@@ -31,13 +31,13 @@
             <div class="club-info">
               <h2 class="club-name">GDUT BanGDream Fan Club</h2>
               <p class="club-description">
-                广东工业大学BanGDream同好会，聚集了热爱バンドリ（和nsy）的人们。
-                我们会组织各类音游活动、观影聚会和团建活动。希望大家在这里分享快乐，共同成长。
+                広東工業大学アイドル研究部，聚集了热爱小偶像（nsy）的人们。
+                我们会组织各类甩手活动、观影聚会和团建活动。希望大家在这里分享快乐，共同成长。
               </p>
               <div class="club-features">
                 <div class="feature-item">
                   <i class="el-icon-star-on"></i>
-                  <span>音游交流</span>
+                  <span>甩手</span>
                 </div>
                 <div class="feature-item">
                   <i class="el-icon-camera"></i>
