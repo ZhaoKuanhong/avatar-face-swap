@@ -127,8 +127,11 @@
               <p class="copyright-text">
                 Copyright © 2025 Faspand & Mio for GDUT BanGDream Fan Club
               </p>
-              <p class="copyright-disclaimer">
-                「BanGDream!」は株式会社ブシロードの登録商標です。
+              <p class="copyright-disclaimer-a">
+                広東工業大学アイドル研究部は非営利団体であり。
+              </p>
+              <p class="copyright-disclaimer-b">
+                本プロジェクトの不適切な使用によって生じたあらゆる問題について、広東工業大学アイドル研究部および本サイトの作者は一切の責任を負いません。
               </p>
             </div>
             <div class="version-info">
@@ -546,7 +549,13 @@ const goBack = () => {
   margin-bottom: 5px;
 }
 
-.copyright-disclaimer {
+.copyright-disclaimer-a {
+  font-size: 0.8rem;
+  color: #888;
+  font-style: italic;
+}
+
+.copyright-disclaimer-b {
   font-size: 0.8rem;
   color: #888;
   font-style: italic;

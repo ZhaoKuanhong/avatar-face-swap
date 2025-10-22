@@ -81,8 +81,8 @@
         </el-main>
 
         <el-footer class="admin-footer">
-          <div class="copyright">Copyright (C) 2025 Faspand & Mio for GDUT BanGDream Fan Club</div>
-          <div class="disclaimer">「BanGDream!」は株式会社ブシロードの登録商標です。</div>
+          <div class="copyright">Copyright (C) 2025 Faspand & Mio for 広東工業大学アイドル研究部 </div>
+          <div class="disclaimer">広東工業大学アイドル研究部は非営利団体であり、本プロジェクトの不適切な使用によって生じたあらゆる問題について、広東工業大学アイドル研究部および本サイトの作者は一切の責任を負いません。</div>
         </el-footer>
       </el-container>
     </el-container>

@@ -44,7 +44,7 @@
       </button>
     </div>
     <footer class="footer">
-      Copyright (C) 2025 Faspand & Mio for GDUT アイドル研究部
+      Copyright (C) 2025 Faspand & Mio for 広東工業大学アイドル研究部
     </footer>
   </div>
   </body>
