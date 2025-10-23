@@ -29,7 +29,17 @@
               <img src="../assets/img/logo.png" alt="GDUT BanGDream Fan Club" />
             </div>
             <div class="club-info">
-              <h2 class="club-name">GDUT BanGDream Fan Club</h2>
+              <div class="club-header">
+                <h2 class="club-name">広東工業大学アイドル研究部</h2>
+                <el-button 
+                  type="primary" 
+                  @click="goToWebsite" 
+                  class="website-btn"
+                >
+                  <i class="el-icon-link"></i>
+                  访问官网
+                </el-button>
+              </div>
               <p class="club-description">
                 広東工業大学アイドル研究部，聚集了热爱小偶像（nsy）的人们。
                 我们会组织各类甩手活动、观影聚会和团建活动。希望大家在这里分享快乐，共同成长。
@@ -97,7 +107,7 @@
           <div class="developers-grid">
             <div class="developer-card">
               <div class="avatar-container">
-                <img src="/faspand.png" alt="Faspand" class="developer-avatar" />
+                <img src="https://q1.qlogo.cn/g?b=qq&nk=516951568&s=640" alt="Faspand" class="developer-avatar" />
                 <div class="avatar-ring"></div>
               </div>
               <h4 class="developer-name">Faspand</h4>
@@ -109,13 +119,13 @@
 
             <div class="developer-card">
               <div class="avatar-container">
-                <img src="/mio.jpg" alt="Mio" class="developer-avatar" />
+                <img src="https://q1.qlogo.cn/g?b=qq&nk=2060968787&s=640" alt="Mio" class="developer-avatar" />
                 <div class="avatar-ring"></div>
               </div>
               <h4 class="developer-name">Mio</h4>
               <p class="developer-role">列車は必ず次の駅へ</p>
               <p class="developer-description">
-                负责用户界面设计与前端开发，集合前后端模块功能。
+                负责用户界面设计与模型集成，集合前后端模块功能。
               </p>
             </div>
           </div>
@@ -164,6 +174,10 @@ const router = useRouter();
 
 const goBack = () => {
   router.go(-1);
+};
+
+const goToWebsite = () => {
+  window.open('https://gdutbandori.org/', '_blank');
 };
 </script>
 
@@ -348,11 +362,22 @@ const goBack = () => {
   flex: 1;
 }
 
+.club-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
 .club-name {
   font-size: 2rem;
   color: #C41E3A;
-  margin-bottom: 15px;
+  margin: 0;
   font-weight: bold;
+  flex: 1;
+  min-width: 300px;
 }
 
 .club-description {
@@ -392,6 +417,37 @@ const goBack = () => {
 .feature-item i {
   margin-right: 8px;
   color: #C41E3A;
+}
+
+.website-btn {
+  background: linear-gradient(90deg, #C41E3A, #E63462);
+  border: none;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(196, 30, 58, 0.3);
+  transition: all 0.4s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.website-btn:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(202, 169, 168, 0.9),
+    rgba(131, 198, 233, 0.9),
+    rgba(244, 192, 137, 0.9),
+    rgba(238, 169, 150, 0.9),
+    rgba(233, 174, 178, 0.9),
+    rgba(234, 149, 152, 0.9)
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+}
+
+.website-btn i {
+  margin-right: 6px;
 }
 
 /* 项目介绍部分 */
@@ -705,6 +761,17 @@ const goBack = () => {
   .club-logo img {
     width: 100px;
     height: 100px;
+  }
+
+  .club-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .club-name {
+    min-width: unset;
+    text-align: center;
   }
 
   .developers-grid {
