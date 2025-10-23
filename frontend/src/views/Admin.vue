@@ -231,6 +231,7 @@ onUnmounted(() => {
   backdrop-filter: blur(8px);
   transform: translateX(0);
   transition: transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease;
+  z-index: 1000; /* This is the fix */
 }
 
 .logo-container {
