@@ -8,12 +8,15 @@ RUN apt-get update && apt-get install -y cmake libgl1-mesa-glx libglib2.0-0
 RUN pip install -r requirements.txt
 RUN pip install gunicorn gevent
 
-# 复制整个应用程序到 app 目录中
+# 复制应用程序代码
 COPY blueprints /app/blueprints
 COPY lib/ /app/lib
-COPY models /app/models
 COPY gunconf.py /app/
 COPY app.py /app/
+COPY download_models.py /app/
+
+# 下载人脸检测模型（确保模型可用）
+RUN python download_models.py
 
 # 设置 Flask 环境变量
 ENV FLASK_APP=app.py
