@@ -89,13 +89,40 @@
           class="upload-dialog"
       >
         <div class="upload-container">
+          <!-- 图片预览区 -->
+          <div v-if="previewImageUrl" class="preview-section">
+            <div class="preview-header">
+              <span class="preview-title">图片预览</span>
+              <el-button 
+                text 
+                size="small" 
+                @click="clearPreview"
+                :disabled="uploadLoading"
+              >
+                重新选择
+              </el-button>
+            </div>
+            <div class="preview-image-container">
+              <img :src="previewImageUrl" alt="预览图片" class="preview-image" />
+            </div>
+            <div class="preview-info">
+              <el-icon><Picture /></el-icon>
+              <span>{{ fileList[0]?.name }}</span>
+              <span class="file-size">{{ formatFileSize(fileList[0]?.size) }}</span>
+            </div>
+          </div>
+
+          <!-- 上传拖拽区 -->
           <el-upload
+              v-show="!previewImageUrl"
               class="upload-dragger"
               drag
               action="#"
               :auto-upload="false"
               :on-change="handleFileChange"
               :file-list="fileList"
+              accept="image/jpeg,image/png,image/jpg"
+              :limit="1"
           >
             <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
             <div class="el-upload__text">
@@ -108,26 +135,53 @@
             </template>
           </el-upload>
 
+          <!-- 处理状态展示 -->
           <div v-if="uploadStatus" class="upload-status">
             <el-alert
                 :title="uploadStatus.message"
                 :type="uploadStatus.type"
                 :description="uploadStatus.description"
                 show-icon
+                :closable="false"
             />
+            <!-- 处理进度 -->
+            <div v-if="uploadStatus.type === 'info' && uploadLoading" class="processing-progress">
+              <el-progress 
+                :percentage="processingProgress" 
+                :indeterminate="processingProgress < 100"
+                :status="processingProgress === 100 ? 'success' : undefined"
+              />
+              <p class="progress-tip">{{ processingTip }}</p>
+            </div>
           </div>
         </div>
 
         <template #footer>
           <div class="dialog-footer">
-            <el-button @click="uploadDialogVisible = false" class="cancel-btn">取消</el-button>
+            <el-button 
+              @click="handleDialogClose" 
+              :disabled="uploadLoading"
+              class="cancel-btn"
+            >
+              {{ uploadLoading ? '处理中...' : '取消' }}
+            </el-button>
             <el-button
+                v-if="!processingComplete"
                 type="primary"
                 @click="submitUpload"
                 :loading="uploadLoading"
+                :disabled="!previewImageUrl || uploadLoading"
                 class="confirm-btn"
             >
-              {{ uploadLoading ? '上传中...' : '上传并处理' }}
+              {{ uploadLoading ? '处理中...' : '上传并处理' }}
+            </el-button>
+            <el-button
+                v-else
+                type="success"
+                @click="handleComplete"
+                class="confirm-btn"
+            >
+              完成
             </el-button>
           </div>
         </template>
@@ -310,12 +364,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { ElNotification, ElMessage } from 'element-plus';
 import { apiClient } from '@/api/axios';
-import {Plus, UploadFilled, View, Edit, Delete, Refresh, PictureFilled} from '@element-plus/icons-vue';
 import QrCodeDisplay from "@/components/QrCodeDisplay.vue";
+import { Delete, Edit, Picture, PictureFilled, Plus, Refresh, UploadFilled, View } from '@element-plus/icons-vue';
+import { ElMessage, ElNotification } from 'element-plus';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 // 状态变量定义
 const dialogFormVisible = ref(false);
@@ -336,6 +390,10 @@ const currentEventId = ref(null);
 const currentDescription = ref(null);
 const uploadStatus = ref(null);
 const statusCheckInterval = ref(null);
+const previewImageUrl = ref(null);
+const processingComplete = ref(false);
+const processingProgress = ref(0);
+const processingTip = ref('');
 
 // 响应式相关
 const windowWidth = ref(window.innerWidth);
@@ -369,6 +427,10 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   clearInterval(statusCheckInterval.value);
+  // 清理预览图片的 blob URL
+  if (previewImageUrl.value && previewImageUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(previewImageUrl.value);
+  }
 });
 
 // 跳转到图片编辑页面
@@ -548,13 +610,67 @@ const showUploadDialog = (eventId) => {
   currentEventId.value = eventId;
   fileList.value = [];
   uploadStatus.value = null;
+  previewImageUrl.value = null;
+  processingComplete.value = false;
+  processingProgress.value = 0;
+  processingTip.value = '';
   uploadDialogVisible.value = true;
   clearInterval(statusCheckInterval.value);
 };
 
-// 文件选择处理
+// 文件选择处理 - 立即预览
 const handleFileChange = (file) => {
   fileList.value = [file];
+  
+  // 创建图片预览
+  if (file.raw) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImageUrl.value = e.target.result;
+    };
+    reader.readAsDataURL(file.raw);
+  }
+};
+
+// 清除预览
+const clearPreview = () => {
+  previewImageUrl.value = null;
+  fileList.value = [];
+  uploadStatus.value = null;
+};
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+// 关闭对话框
+const handleDialogClose = () => {
+  if (uploadLoading.value) {
+    ElMessage.warning('正在处理中，请稍候...');
+    return;
+  }
+  uploadDialogVisible.value = false;
+  clearInterval(statusCheckInterval.value);
+  if (previewImageUrl.value && previewImageUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(previewImageUrl.value);
+  }
+};
+
+// 完成按钮处理
+const handleComplete = () => {
+  uploadDialogVisible.value = false;
+  clearInterval(statusCheckInterval.value);
+  if (previewImageUrl.value && previewImageUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(previewImageUrl.value);
+  }
+  // 刷新活动列表
+  fetchEvents();
+  ElMessage.success('图片处理完成！');
 };
 
 // 提交图片上传
@@ -565,16 +681,19 @@ const submitUpload = async () => {
   }
 
   uploadLoading.value = true;
+  processingProgress.value = 10;
+  processingTip.value = '正在上传图片...';
   uploadStatus.value = {
     type: 'info',
     message: '上传中...',
-    description: '正在上传图片，请稍候'
+    description: '正在上传图片到服务器，请稍候'
   };
 
   try {
     const formData = new FormData();
     formData.append('file', fileList.value[0].raw);
 
+    processingProgress.value = 30;
     const response = await apiClient.post(
         `/events/${currentEventId.value}/upload-pic`,
         formData,
@@ -585,6 +704,8 @@ const submitUpload = async () => {
         }
     );
 
+    processingProgress.value = 50;
+    processingTip.value = '上传成功，正在识别人脸...';
     uploadStatus.value = {
       type: 'success',
       message: '上传成功',
@@ -595,6 +716,7 @@ const submitUpload = async () => {
     checkProcessStatus();
 
   } catch (error) {
+    processingProgress.value = 0;
     uploadStatus.value = {
       type: 'error',
       message: '上传失败',
@@ -607,20 +729,30 @@ const submitUpload = async () => {
 // 检查处理状态
 const checkProcessStatus = () => {
   clearInterval(statusCheckInterval.value);
+  let checkCount = 0;
 
   statusCheckInterval.value = setInterval(async () => {
     try {
+      checkCount++;
       const response = await apiClient.get(`/events/${currentEventId.value}/process-status`);
 
       if (response.data.status === 'completed') {
+        processingProgress.value = 100;
+        processingTip.value = `识别完成！共检测到 ${response.data.faces_count} 个人脸`;
         uploadStatus.value = {
           type: 'success',
-          message: '处理完成',
+          message: '处理完成！',
           description: response.data.message
         };
         uploadLoading.value = false;
+        processingComplete.value = true;
         clearInterval(statusCheckInterval.value);
       } else if (response.data.status === 'processing') {
+        // 模拟进度增长
+        if (processingProgress.value < 90) {
+          processingProgress.value = Math.min(90, 50 + checkCount * 5);
+        }
+        processingTip.value = '正在识别和裁剪人脸，请稍候...';
         uploadStatus.value = {
           type: 'info',
           message: '处理中',
@@ -630,6 +762,7 @@ const checkProcessStatus = () => {
     } catch (error) {
       console.error('检查处理状态失败:', error);
       clearInterval(statusCheckInterval.value);
+      processingProgress.value = 0;
       uploadStatus.value = {
         type: 'warning',
         message: '状态查询失败',
@@ -879,6 +1012,83 @@ const generateRandomPassword = () => {
   margin-top: 16px;
 }
 
+/* 预览区域样式 */
+.preview-section {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.preview-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+}
+
+.preview-image-container {
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+}
+
+.preview-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.preview-info .el-icon {
+  color: #409eff;
+}
+
+.file-size {
+  margin-left: auto;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 处理进度样式 */
+.processing-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.progress-tip {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #606266;
+  text-align: center;
+}
+
 /* 空状态 */
 .empty-state {
   padding: 60px 20px;
@@ -1007,6 +1217,14 @@ const generateRandomPassword = () => {
 
   :deep(.el-upload-dragger) {
     height: 140px;
+  }
+
+  .preview-image-container {
+    max-height: 300px;
+  }
+
+  .preview-image {
+    max-height: 300px;
   }
 }
 
