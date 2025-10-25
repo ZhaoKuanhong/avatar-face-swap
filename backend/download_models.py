@@ -51,7 +51,7 @@ def create_models_dir():
     """创建models目录"""
     models_dir = Path("models")
     models_dir.mkdir(exist_ok=True)
-    print(f"✓ 模型目录已创建: {models_dir.absolute()}")
+    print(f"[OK]模型目录已创建: {models_dir.absolute()}")
     return models_dir
 
 def download_file(url: str, filepath: Path, description: str) -> bool:
@@ -68,14 +68,14 @@ def download_file(url: str, filepath: Path, description: str) -> bool:
                 print(f"\r   进度: {percent}%", end="", flush=True)
         
         urllib.request.urlretrieve(url, filepath, reporthook=progress_hook)
-        print(f"\n✓ 下载完成: {filepath.name}")
+        print(f"\n[OK]下载完成: {filepath.name}")
         return True
         
     except urllib.error.URLError as e:
-        print(f"\n❌ 下载失败: {e}")
+        print(f"\n[ERROR]下载失败: {e}")
         return False
     except Exception as e:
-        print(f"\n❌ 下载异常: {e}")
+        print(f"\n[ERROR]下载异常: {e}")
         return False
 
 def verify_file_size(filepath: Path, expected_size: str) -> bool:
@@ -101,7 +101,7 @@ def download_models():
     """下载所有模型文件"""
     models_dir = create_models_dir()
     
-    print("\n🚀 开始下载模型文件...")
+    print("\n开始下载模型文件...")
     print("=" * 60)
     
     success_count = 0
@@ -112,18 +112,18 @@ def download_models():
         total_count += 1
         filepath = models_dir / filename
         
-        print(f"\n📦 处理模型: {filename}")
+        print(f"\n处理模型: {filename}")
         print(f"   描述: {config['description']}")
         print(f"   大小: {config['size']}")
         
         # 如果文件已存在且大小正确，跳过
         if filepath.exists():
             if verify_file_size(filepath, config['size']):
-                print(f"✓ 文件已存在且正确: {filename}")
+                print(f"[OK]文件已存在且正确: {filename}")
                 success_count += 1
                 continue
             else:
-                print(f"⚠ 文件存在但大小不正确，重新下载: {filename}")
+                print(f"[WARNING]文件存在但大小不正确，重新下载: {filename}")
                 filepath.unlink()  # 删除旧文件
         
         # 尝试从多个URL下载
@@ -136,19 +136,19 @@ def download_models():
                     downloaded = True
                     break
                 else:
-                    print(f"⚠ 下载的文件大小不正确，尝试下一个源")
+                    print(f"[WARNING]下载的文件大小不正确，尝试下一个源")
                     filepath.unlink()
         
         if not downloaded:
             failed_models.append(filename)
             # 如果是可选模型，不算作严重错误
             if config.get('optional', False):
-                print(f"⚠ 可选模型下载失败（不影响基本功能）: {filename}")
+                print(f"[WARNING]可选模型下载失败（不影响基本功能）: {filename}")
             else:
-                print(f"❌ 必需模型下载失败: {filename}")
+                print(f"[ERROR]必需模型下载失败: {filename}")
     
     print("\n" + "=" * 60)
-    print("📊 下载总结:")
+    print("下载总结:")
     print(f"   成功: {success_count}/{total_count}")
     
     if failed_models:
@@ -159,18 +159,18 @@ def download_models():
                           if not MODELS_CONFIG[f].get('optional', False)]
         
         if required_failed:
-            print(f"\n❌ 必需模型下载失败，可能影响功能: {required_failed}")
-            print("💡 建议:")
+            print(f"\n[ERROR]必需模型下载失败，可能影响功能: {required_failed}")
+            print("建议:")
             print("   1. 检查网络连接")
             print("   2. 手动下载失败的模型文件到models目录")
             print("   3. 联系开发者获取模型文件")
             return False
         else:
-            print("\n✅ 所有必需模型已下载完成")
-            print("⚠ 部分可选模型下载失败，不影响基本功能")
+            print("\n[OK]所有必需模型已下载完成")
+            print("[WARNING]部分可选模型下载失败，不影响基本功能")
             return True
     else:
-        print("\n🎉 所有模型文件下载完成！")
+        print("\n[OK]所有模型文件下载完成！")
         return True
 
 def create_model_info():
@@ -203,11 +203,11 @@ def create_model_info():
     with open(info_file, 'w', encoding='utf-8') as f:
         json.dump(model_info, f, indent=4, ensure_ascii=False)
     
-    print(f"📋 模型信息文件已生成: {info_file}")
+    print(f"[OK]模型信息文件已生成: {info_file}")
 
 def main():
     """主函数"""
-    print("🔧 人脸检测模型下载工具")
+    print("人脸检测模型下载工具")
     print("适用于服务器部署前的模型预下载")
     print("=" * 60)
     
@@ -216,18 +216,18 @@ def main():
         create_model_info()
         
         if success:
-            print("\n✅ 模型下载完成！现在可以安全部署到服务器了")
+            print("\n[OK]模型下载完成！现在可以安全部署到服务器了")
             print("💡 提示: 将整个models目录上传到服务器")
             return 0
         else:
-            print("\n❌ 部分模型下载失败，请检查后重试")
+            print("\n[ERROR]部分模型下载失败，请检查后重试")
             return 1
             
     except KeyboardInterrupt:
-        print("\n\n⏹ 用户取消下载")
+        print("\n\n[CANCEL]用户取消下载")
         return 1
     except Exception as e:
-        print(f"\n❌ 下载过程中出现异常: {e}")
+        print(f"\n[ERROR]下载过程中出现异常: {e}")
         return 1
 
 if __name__ == "__main__":
