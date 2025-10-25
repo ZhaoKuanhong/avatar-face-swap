@@ -1,16 +1,15 @@
-import os
 import json
+import os
 import threading
+
 import cv2
 from flask import Blueprint, jsonify, request, send_from_directory
-from werkzeug.utils import secure_filename
-
 from lib.common.constants import ALLOWED_EXTENSIONS, CROPPED_FACES_FOLDER
-from lib.utils import (
-    query_db, execute_db, log_activity, load_events, load_event,
-    download_qq_avatar_async, get_logs, process_image_async,
-    requires_admin_permission, requires_event_permission
-)
+from lib.utils import (download_qq_avatar_async, execute_db, get_logs,
+                       load_event, load_events, log_activity,
+                       process_image_async, query_db,
+                       requires_admin_permission, requires_event_permission)
+from werkzeug.utils import secure_filename
 
 events_bp = Blueprint('events', __name__)
 
@@ -144,7 +143,12 @@ def get_event_qr_code(event_id):
 @events_bp.route('/api/events/<event_id>/pic', methods=['GET'])
 @requires_event_permission
 def get_event_pic(event_id):
-    return send_from_directory(os.path.join('event', event_id), 'input.jpg')
+    from flask import make_response
+    response = make_response(send_from_directory(os.path.join('event', event_id), 'input.jpg'))
+    # 原始图片也设置缓存
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    response.headers['ETag'] = f'"{event_id}-input"'
+    return response
 
 
 @events_bp.route('/api/events/<event_id>/pic/info', methods=['GET'])
@@ -245,13 +249,23 @@ def add_manual_face(event_id):
 @events_bp.route('/api/events/<event_id>/faces/<filename>')
 @requires_event_permission
 def get_event_face_image(event_id, filename):
-    return send_from_directory(os.path.join('event', event_id, CROPPED_FACES_FOLDER), filename)
+    from flask import make_response
+    response = make_response(send_from_directory(os.path.join('event', event_id, CROPPED_FACES_FOLDER), filename))
+    # 设置缓存头（人脸图片不会变化）
+    response.headers['Cache-Control'] = 'public, max-age=86400'  # 缓存24小时
+    response.headers['ETag'] = f'"{event_id}-{filename}"'
+    return response
 
 
 @events_bp.route('/api/events/<event_id>/faces/upload/<filename>')
 @requires_event_permission
 def get_upload_face_image(event_id, filename):
-    return send_from_directory(os.path.join('event', event_id, 'upload'), filename)
+    from flask import make_response
+    response = make_response(send_from_directory(os.path.join('event', event_id, 'upload'), filename))
+    # 设置缓存头
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    response.headers['ETag'] = f'"{event_id}-upload-{filename}"'
+    return response
 
 
 @events_bp.route('/api/upload/<event_id>/<selected_face>', methods=['POST'])

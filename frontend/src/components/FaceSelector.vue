@@ -16,7 +16,11 @@
           :alt="face"
           class="face-image"
           style="height: 100px"
+          loading="lazy"
         />
+        <div v-else class="face-loading">
+          <div class="loading-spinner-small"></div>
+        </div>
         <p>{{ face }}</p>
       </div>
     </div>
@@ -38,10 +42,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/api/axios';
-import {  defineProps, defineEmits } from 'vue';
 import pLimit from 'p-limit';
+import { defineEmits, defineProps, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps({
   eventId: {
@@ -163,5 +166,28 @@ function selectFace(face) {
   flex-direction: column;
   align-items: center;
   padding: 8px;
+}
+
+.face-loading {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #409EFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

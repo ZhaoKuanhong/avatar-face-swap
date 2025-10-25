@@ -1,12 +1,14 @@
 import logging
 import os
-from flask import Flask, redirect, current_app
-from flask_cors import CORS
-from dotenv import load_dotenv
 
-from lib.extensions import oauth
 from blueprints.auth import auth_bp
 from blueprints.events import events_bp
+from dotenv import load_dotenv
+from flask import Flask, current_app, redirect
+from flask_cors import CORS
+from lib.db_utils import close_connection
+from lib.extensions import oauth
+
 
 def create_app():
     """Application factory to create and configure the Flask app."""
@@ -19,6 +21,9 @@ def create_app():
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a-strong-dev-secret-key')
     app.config['JWT_SECRET'] = os.environ.get('JWT_SECRET', 'a-strong-jwt-secret')
     CORS(app)
+    
+    # --- Database Connection Cleanup ---
+    app.teardown_appcontext(close_connection)
 
     # --- Initialize Extensions ---
     oauth.init_app(app)

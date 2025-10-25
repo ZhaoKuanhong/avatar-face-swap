@@ -1,16 +1,18 @@
+import inspect
 import json
 import threading
-import jwt
 from datetime import datetime, timedelta
+
 import cv2
 import dlib
+import jwt
 import requests
-import inspect
-from flask import request, jsonify
-from werkzeug.utils import secure_filename
-from itsdangerous import URLSafeTimedSerializer as Serializer, BadSignature, SignatureExpired
+from flask import jsonify, request
+from itsdangerous import BadSignature, SignatureExpired
+from itsdangerous import URLSafeTimedSerializer as Serializer
 from lib.common.constants import *
-from lib.db_utils import query_db, execute_db
+from lib.db_utils import execute_db, query_db
+from werkzeug.utils import secure_filename
 
 # 导入增强版人脸检测器
 try:
@@ -331,6 +333,16 @@ def process_image_enhanced(event_id, image_path, detection_strategy="balanced"):
         # 获取图像尺寸
         height, width = img.shape[:2]
         print(f"[Enhanced] 处理图像: {width}x{height}")
+        
+        # 图片优化：如果图片过大，先缩小以提高处理速度
+        max_dimension = 4096  # 最大尺寸
+        if width > max_dimension or height > max_dimension:
+            scale = max_dimension / max(width, height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            print(f"[Enhanced] 图片过大，缩放至: {new_width}x{new_height}")
+            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            height, width = img.shape[:2]
 
         # 使用增强版人脸检测（优先RetinaFace）
         faces_info = detect_faces_in_image(img, strategy=detection_strategy)
@@ -351,13 +363,22 @@ def process_image_enhanced(event_id, image_path, detection_strategy="balanced"):
             cropped_face = img[y1:y2, x1:x2]
             
             if cropped_face.size > 0:
-                # 保存裁剪的人脸
+                # 优化：如果裁剪的人脸过大，进行压缩
+                face_height, face_width = cropped_face.shape[:2]
+                max_face_size = 400  # 人脸最大尺寸
+                if face_width > max_face_size or face_height > max_face_size:
+                    scale = max_face_size / max(face_width, face_height)
+                    new_face_width = int(face_width * scale)
+                    new_face_height = int(face_height * scale)
+                    cropped_face = cv2.resize(cropped_face, (new_face_width, new_face_height), interpolation=cv2.INTER_AREA)
+                
+                # 保存裁剪的人脸（使用适当的压缩质量）
                 output_path = os.path.join(cropped_faces_folder, face_info["filename"])
-                cv2.imwrite(output_path, cropped_face)
+                cv2.imwrite(output_path, cropped_face, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
-        # 保存原始图像到事件目录
+        # 保存原始图像到事件目录（压缩）
         original_image_path = os.path.join(base_folder, 'input.jpg')
-        cv2.imwrite(original_image_path, img)
+        cv2.imwrite(original_image_path, img, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
         # 生成完整的输出数据（保持与原格式兼容）
         output_data = {
@@ -444,6 +465,15 @@ def process_image(event_id, image_path):
 
         # 获取图像尺寸
         height, width = img.shape[:2]
+        
+        # 图片优化：如果图片过大，先缩小
+        max_dimension = 4096
+        if width > max_dimension or height > max_dimension:
+            scale = max_dimension / max(width, height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            height, width = img.shape[:2]
 
         # 将图像转换为灰度图，以提高检测效率
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -480,9 +510,18 @@ def process_image(event_id, image_path):
             # 构建输出文件名
             output_filename = f"face_{i + 1}.jpg"
             output_path = os.path.join(cropped_faces_folder, output_filename)
+            
+            # 优化：压缩裁剪的人脸
+            face_height, face_width = cropped_face.shape[:2]
+            max_face_size = 400
+            if face_width > max_face_size or face_height > max_face_size:
+                scale = max_face_size / max(face_width, face_height)
+                new_face_width = int(face_width * scale)
+                new_face_height = int(face_height * scale)
+                cropped_face = cv2.resize(cropped_face, (new_face_width, new_face_height), interpolation=cv2.INTER_AREA)
 
-            # 保存裁剪的人脸图像
-            cv2.imwrite(output_path, cropped_face)
+            # 保存裁剪的人脸图像（带压缩）
+            cv2.imwrite(output_path, cropped_face, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
             face_info = {
                 "filename": output_filename,
@@ -506,7 +545,7 @@ def process_image(event_id, image_path):
 
         # 保存原始图像到事件目录
         original_image_path = os.path.join(base_folder, 'input.jpg')
-        cv2.imwrite(original_image_path, img)
+        cv2.imwrite(original_image_path, img, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
         # 生成JSON文件
         json_filename = os.path.join(base_folder, 'faces_info.json')
