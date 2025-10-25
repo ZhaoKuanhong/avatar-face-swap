@@ -87,8 +87,91 @@
           :width="dialogWidth"
           :fullscreen="isMobile"
           class="upload-dialog"
+          @open="fetchDetectorStatus"
       >
         <div class="upload-container">
+          <!-- 调试面板 -->
+          <el-collapse v-if="detectorStatus" class="debug-panel">
+            <el-collapse-item name="debug">
+              <template #title>
+                <div class="debug-panel-header">
+                  <span>调试信息</span>
+                  <div class="debug-actions">
+                    <el-tag v-if="detectorStatusTime" size="small" type="info">
+                      {{ detectorStatusTime }}
+                    </el-tag>
+                    <el-button 
+                      size="small" 
+                      text 
+                      :icon="Refresh" 
+                      @click.stop="fetchDetectorStatus"
+                      :loading="detectorStatusLoading"
+                    >
+                      刷新
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+              <div class="detector-status">
+                <div class="status-summary">
+                  <el-tag type="info">总计: {{ detectorStatus.total_detectors }} 个检测器</el-tag>
+                  <el-tag type="success">已加载: {{ detectorStatus.loaded_detectors?.length || 0 }} 个</el-tag>
+                  <el-tag :type="detectorStatus.gpu_available ? 'success' : 'warning'">
+                    GPU: {{ detectorStatus.gpu_available ? '可用' : '不可用' }}
+                  </el-tag>
+                </div>
+                
+                <el-alert 
+                  v-if="detectorStatus.loaded_detectors?.length === 1"
+                  type="info" 
+                  :closable="false"
+                  show-icon
+                  style="margin-top: 10px;"
+                >
+                  <template #title>
+                    <span style="font-size: 12px;">
+                      数据可能不会自动刷新
+                    </span>
+                  </template>
+                </el-alert>
+                
+                <el-divider />
+                
+                <div class="detectors-list">
+                  <div 
+                    v-for="(info, name) in detectorStatus.detectors_status" 
+                    :key="name"
+                    class="detector-item"
+                    :class="{ 'loaded': info.loaded }"
+                  >
+                    <div class="detector-header">
+                      <span class="detector-name">
+                        <el-icon v-if="info.loaded" color="#67c23a"><CircleCheck /></el-icon>
+                        <el-icon v-else color="#909399"><CircleClose /></el-icon>
+                        {{ name.toUpperCase() }}
+                      </span>
+                      <el-tag size="small" :type="info.available ? 'success' : 'info'">
+                        {{ info.available ? '可用' : '不可用' }}
+                      </el-tag>
+                      <el-tag size="small" type="info">优先级: {{ info.priority }}</el-tag>
+                    </div>
+                    <div class="detector-desc">{{ info.description }}</div>
+                  </div>
+                </div>
+                
+                <el-divider />
+                
+                <div class="model-paths">
+                  <div class="path-title">模型文件路径:</div>
+                  <div v-for="(path, key) in detectorStatus.model_paths" :key="key" class="path-item">
+                    <span class="path-key">{{ key }}:</span>
+                    <span class="path-value">{{ path }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+
           <!-- 图片预览区 -->
           <div v-if="previewImageUrl" class="preview-section">
             <div class="preview-header">
@@ -366,7 +449,7 @@
 <script setup>
 import { apiClient } from '@/api/axios';
 import QrCodeDisplay from "@/components/QrCodeDisplay.vue";
-import { Delete, Edit, Picture, PictureFilled, Plus, Refresh, UploadFilled, View } from '@element-plus/icons-vue';
+import { CircleCheck, CircleClose, Delete, Edit, Picture, PictureFilled, Plus, Refresh, UploadFilled, View } from '@element-plus/icons-vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -394,6 +477,11 @@ const previewImageUrl = ref(null);
 const processingComplete = ref(false);
 const processingProgress = ref(0);
 const processingTip = ref('');
+
+// 调试面板状态
+const detectorStatus = ref(null);
+const detectorStatusTime = ref('');
+const detectorStatusLoading = ref(false);
 
 // 响应式相关
 const windowWidth = ref(window.innerWidth);
@@ -618,6 +706,36 @@ const showUploadDialog = (eventId) => {
   clearInterval(statusCheckInterval.value);
 };
 
+// 获取检测器状态（调试用）
+const fetchDetectorStatus = async () => {
+  try {
+    detectorStatusLoading.value = true;
+    console.log('[Debug] 获取检测器状态...');
+    const response = await apiClient.get('/debug/detector-status');
+    console.log('[Debug] API响应:', response.data);
+    
+    // 后端返回格式: { success: true, detector_status: {...}, message: "..." }
+    if (response.data.success && response.data.detector_status) {
+      detectorStatus.value = response.data.detector_status;
+      detectorStatusTime.value = new Date().toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      console.log('[Debug] 检测器状态:', detectorStatus.value);
+      console.log('[Debug] 已加载的检测器:', detectorStatus.value.loaded_detectors);
+      console.log('[Debug] GPU可用:', detectorStatus.value.gpu_available);
+    } else {
+      console.error('[Debug] API返回格式异常:', response.data);
+    }
+  } catch (error) {
+    console.error('[Debug] 获取检测器状态失败:', error);
+    ElMessage.error('获取检测器状态失败');
+  } finally {
+    detectorStatusLoading.value = false;
+  }
+};
+
 // 文件选择处理 - 立即预览
 const handleFileChange = (file) => {
   fileList.value = [file];
@@ -747,6 +865,9 @@ const checkProcessStatus = () => {
         uploadLoading.value = false;
         processingComplete.value = true;
         clearInterval(statusCheckInterval.value);
+        
+        console.log('[Debug] 处理完成，刷新检测器状态...');
+        await fetchDetectorStatus();
       } else if (response.data.status === 'processing') {
         // 模拟进度增长
         if (processingProgress.value < 90) {
@@ -1296,6 +1417,116 @@ const generateRandomPassword = () => {
   .action-row {
     flex-direction: row;
   }
+}
+
+/* 调试面板样式 */
+.debug-panel {
+  margin-bottom: 20px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+}
+
+.debug-panel :deep(.el-collapse-item__header) {
+  font-weight: 600;
+  color: #409eff;
+  padding: 12px 16px;
+  background: #f5f7fa;
+}
+
+.debug-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 10px;
+}
+
+.debug-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.detector-status {
+  padding: 8px 0;
+}
+
+.status-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+}
+
+.detectors-list {
+  padding: 0 16px;
+}
+
+.detector-item {
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  background: #f9fafb;
+  transition: all 0.3s;
+}
+
+.detector-item.loaded {
+  background: #f0f9ff;
+  border-color: #67c23a;
+}
+
+.detector-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.detector-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.detector-desc {
+  font-size: 12px;
+  color: #606266;
+  margin-left: 30px;
+}
+
+.model-paths {
+  padding: 8px 16px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  margin: 0 16px;
+}
+
+.path-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #303133;
+}
+
+.path-item {
+  font-size: 12px;
+  color: #606266;
+  margin: 4px 0;
+  padding: 4px 0;
+  word-break: break-all;
+}
+
+.path-key {
+  font-weight: 600;
+  color: #409eff;
+}
+
+.path-value {
+  margin-left: 8px;
+  font-family: 'Courier New', monospace;
 }
 
 /* 触摸设备优化 */

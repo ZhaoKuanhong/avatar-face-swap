@@ -1,10 +1,11 @@
+import json
+import os
+import time
+import warnings
+from typing import Any, Dict, List, Optional, Tuple
+
 import cv2
 import numpy as np
-import os
-import json
-import time
-from typing import List, Tuple, Dict, Any, Optional
-import warnings
 
 warnings.filterwarnings('ignore')
 
@@ -131,7 +132,7 @@ class EnhancedFaceDetector:
             self.retina_app.prepare(ctx_id=-1)  # CPU模式
             self.detectors['retinaface'] = self._detect_with_retinaface
             self._retinaface_loaded = True
-            print("[FaceDetector] ✓ RetinaFace检测器加载成功（最强精度）")
+            print("[FaceDetector] [OK]RetinaFace检测器加载成功（最强精度）")
         except ImportError:
             print("[FaceDetector] ⚠ RetinaFace需要安装: pip install insightface")
         except Exception as e:
@@ -149,7 +150,7 @@ class EnhancedFaceDetector:
             )
             self.detectors['mediapipe'] = self._detect_with_mediapipe
             self._mediapipe_loaded = True
-            print("[FaceDetector] ✓ MediaPipe检测器加载成功（Google出品）")
+            print("[FaceDetector] [OK]MediaPipe检测器加载成功（Google出品）")
         except ImportError:
             print("[FaceDetector] ⚠ MediaPipe需要安装: pip install mediapipe")
         except Exception as e:
@@ -169,7 +170,7 @@ class EnhancedFaceDetector:
                 )
                 self.detectors['yunet'] = self._detect_with_yunet
                 self._yunet_loaded = True
-                print(f"[FaceDetector] ✓ YuNet检测器加载成功（使用预下载模型）")
+                print(f"[FaceDetector] [OK]YuNet检测器加载成功（使用预下载模型）")
             else:
                 # 如果没有预下载的模型，尝试下载（但不推荐在生产环境）
                 print("[FaceDetector] ⚠ YuNet预下载模型未找到，建议运行 python download_models.py")
@@ -193,7 +194,7 @@ class EnhancedFaceDetector:
 
                 self.detectors['dnn'] = self._detect_with_dnn
                 self._dnn_loaded = True
-                print("[FaceDetector] ✓ DNN检测器加载成功（使用预下载模型）")
+                print("[FaceDetector] [OK]DNN检测器加载成功（使用预下载模型）")
             else:
                 print("[FaceDetector] ⚠ DNN预下载模型未找到，建议运行 python download_models.py")
         except Exception as e:
@@ -208,7 +209,7 @@ class EnhancedFaceDetector:
             self.dlib_detector = dlib.get_frontal_face_detector()
             self.detectors['dlib'] = self._detect_with_dlib
             self._dlib_loaded = True
-            print("[FaceDetector] ✓ dlib检测器加载成功（兼容模式）")
+            print("[FaceDetector] [OK]dlib检测器加载成功（兼容模式）")
         except ImportError:
             print("[FaceDetector] ⚠ dlib未安装，跳过dlib检测器")
         except Exception as e:
@@ -224,7 +225,7 @@ class EnhancedFaceDetector:
             )
             self.detectors['cascade'] = self._detect_with_cascade
             self._cascade_loaded = True
-            print("[FaceDetector] ✓ 级联检测器加载成功")
+            print("[FaceDetector] [OK]级联检测器加载成功")
         except Exception as e:
             print(f"[FaceDetector] ⚠ 级联检测器加载失败: {e}")
 
@@ -246,7 +247,7 @@ class EnhancedFaceDetector:
 
             print("[FaceDetector] 正在下载YuNet模型（从HuggingFace）...")
             urllib.request.urlretrieve(hf_url, model_path)
-            print("[FaceDetector] ✓ YuNet模型下载完成")
+            print("[FaceDetector] [OK]YuNet模型下载完成")
 
             # 更新模型路径
             self.model_paths["yunet_model"] = model_path
@@ -522,8 +523,69 @@ class EnhancedFaceDetector:
 
         return inter_area / union_area if union_area > 0 else 0.0
 
+    def get_detector_status(self) -> Dict[str, Any]:
+        """
+        获取检测器状态信息，用于调试
+        返回所有模型的加载状态和可用性
+        """
+        status = {
+            "total_detectors": len(self.detectors),
+            "loaded_detectors": list(self.detectors.keys()),
+            "model_paths": self.model_paths,
+            "detectors_status": {
+                "retinaface": {
+                    "loaded": self._retinaface_loaded,
+                    "available": 'retinaface' in self.detectors,
+                    "priority": "highest",
+                    "description": "InsightFace RetinaFace (最高精度)"
+                },
+                "yunet": {
+                    "loaded": self._yunet_loaded,
+                    "available": 'yunet' in self.detectors,
+                    "priority": "high",
+                    "description": "OpenCV YuNet (快速准确)",
+                    "model_path": self.model_paths.get("yunet_model", "NOT FOUND")
+                },
+                "mediapipe": {
+                    "loaded": self._mediapipe_loaded,
+                    "available": 'mediapipe' in self.detectors,
+                    "priority": "medium",
+                    "description": "Google MediaPipe"
+                },
+                "dnn": {
+                    "loaded": self._dnn_loaded,
+                    "available": 'dnn' in self.detectors,
+                    "priority": "medium",
+                    "description": "OpenCV DNN SSD",
+                    "prototxt": self.model_paths.get("dnn_prototxt", "NOT FOUND"),
+                    "model": self.model_paths.get("dnn_model", "NOT FOUND")
+                },
+                "dlib": {
+                    "loaded": self._dlib_loaded,
+                    "available": 'dlib' in self.detectors,
+                    "priority": "low",
+                    "description": "Dlib HOG"
+                },
+                "cascade": {
+                    "loaded": self._cascade_loaded,
+                    "available": 'cascade' in self.detectors,
+                    "priority": "low",
+                    "description": "OpenCV Cascade"
+                }
+            },
+            "gpu_enabled": self.use_gpu,
+            "gpu_available": cv2.cuda.getCudaEnabledDeviceCount() > 0
+        }
+        return status
+
     def detect_faces(self, image: np.ndarray,
                      strategy: str = "balanced") -> List[Dict[str, Any]]:
+        # 调试信息
+        print(f"\n[FaceDetector] ========== 开始人脸检测 ==========")
+        print(f"[FaceDetector] 策略: {strategy}")
+        print(f"[FaceDetector] 当前已加载检测器数量: {len(self.detectors)}")
+        print(f"[FaceDetector] 当前已加载检测器: {list(self.detectors.keys())}")
+        
         if len(self.detectors) == 0:
             print("[FaceDetector] 错误: 没有可用的检测器")
             return []
@@ -544,17 +606,29 @@ class EnhancedFaceDetector:
             detector_priorities = ['retinaface', 'yunet', 'mediapipe']
             enhance_images = True
 
+        # 调试信息：记录选择的检测器
+        print(f"[FaceDetector] 将使用以下检测器（优先级顺序）: {detector_priorities}")
+        
         # 按需加载检测器
         for detector_name in detector_priorities:
             if detector_name not in self.detectors:
                 # 懒加载检测器
+                print(f"[FaceDetector] 尝试懒加载检测器: {detector_name}")
                 load_method = getattr(self, f'_load_{detector_name}_detector', None)
                 if load_method:
                     try:
                         load_method()
+                        if detector_name in self.detectors:
+                            print(f"[FaceDetector] [OK]懒加载 {detector_name} 成功")
+                        else:
+                            print(f"[FaceDetector] [ERROR]懒加载 {detector_name} 未成功添加")
                     except Exception as e:
-                        print(f"[FaceDetector] 懒加载 {detector_name} 失败: {e}")
+                        print(f"[FaceDetector] [ERROR]懒加载 {detector_name} 失败: {e}")
 
+        # 调试信息：记录最终将使用的检测器
+        active_detectors = [d for d in detector_priorities if d in self.detectors]
+        print(f"[FaceDetector] 最终将使用 {len(active_detectors)} 个检测器: {active_detectors}")
+        
         # 获取增强图像
         if enhance_images:
             image_versions = self._enhance_image_for_shadows(image)
@@ -566,13 +640,18 @@ class EnhancedFaceDetector:
             for detector_name in detector_priorities:
                 if detector_name in self.detectors:
                     try:
+                        print(f"[FaceDetector] 正在使用 {detector_name} 检测 {version_name} 图像...")
                         detections = self.detectors[detector_name](img_version)
+                        print(f"[FaceDetector] {detector_name} 在 {version_name} 上检测到 {len(detections)} 个人脸")
                         all_detections.extend(detections)
                     except Exception as e:
-                        print(f"[FaceDetector] 检测器 {detector_name} 在 {version_name} 上失败: {e}")
+                        print(f"[FaceDetector] [ERROR]检测器 {detector_name} 在 {version_name} 上失败: {e}")
 
         # 合并检测结果
+        print(f"[FaceDetector] 合并前共有 {len(all_detections)} 个检测结果")
         merged_detections = self._merge_detections(all_detections)
+        print(f"[FaceDetector] 合并后共有 {len(merged_detections)} 个人脸")
+        print(f"[FaceDetector] ========== 人脸检测完成 ==========\n")
 
         # 转换为标准格式
         results = []

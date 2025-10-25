@@ -16,13 +16,20 @@ from werkzeug.utils import secure_filename
 
 # 导入增强版人脸检测器
 try:
-    from lib.face_detection.enhanced_detector import detect_faces_in_image
+    from lib.face_detection.enhanced_detector import (detect_faces_in_image,
+                                                      get_face_detector)
     ENHANCED_DETECTION_AVAILABLE = True
     print('[Utils] ✓ 增强版人脸检测器可用（包含RetinaFace支持）')
 except ImportError as e:
     ENHANCED_DETECTION_AVAILABLE = False
     print(f'[Utils] ⚠ 增强版人脸检测器不可用: {e}')
     print('[Utils] 将使用传统dlib检测器')
+
+def get_global_face_detector():
+    """获取全局共享的人脸检测器实例（使用enhanced_detector的单例）"""
+    if ENHANCED_DETECTION_AVAILABLE:
+        return get_face_detector()
+    return None
 
 token_serializer = Serializer(SECRET_KEY)
 

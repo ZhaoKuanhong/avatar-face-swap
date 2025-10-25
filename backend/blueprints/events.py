@@ -332,3 +332,38 @@ def get_process_status(event_id):
             return jsonify(status="not_started", message="尚未上传图片"), 404
     except Exception as e:
         return jsonify(error=f'获取状态失败: {str(e)}'), 500
+
+
+@events_bp.route('/api/debug/detector-status', methods=['GET'])
+@requires_admin_permission
+def get_detector_status():
+    """
+    调试接口：获取人脸检测器的加载状态和配置信息
+    返回当前实际使用的全局检测器实例的状态
+    """
+    try:
+        from lib.utils import get_global_face_detector
+
+        # 获取全局共享的检测器实例
+        detector = get_global_face_detector()
+        
+        if detector is None:
+            return jsonify({
+                "success": False,
+                "error": "增强版检测器不可用",
+                "message": "系统未启用增强版人脸检测器"
+            }), 503
+        
+        status = detector.get_detector_status()
+        
+        return jsonify({
+            "success": True,
+            "detector_status": status,
+            "message": "检测器状态获取成功（全局实例）"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "获取检测器状态失败"
+        }), 500
