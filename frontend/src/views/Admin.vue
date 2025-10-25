@@ -90,9 +90,9 @@
 </template>
 
 <script setup>
-import { useRouter, useRoute } from 'vue-router';
-import { inject, computed, ref, onMounted, onUnmounted } from 'vue';
-import { Menu, Grid, Document, SwitchButton } from '@element-plus/icons-vue';
+import { Document, Grid, Menu, SwitchButton } from '@element-plus/icons-vue';
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
@@ -163,10 +163,12 @@ onUnmounted(() => {
 
   min-height: 100vh;
   width: 100%;
+  max-width: 100vw; /* 🔥 防止被子元素撑开 */
   background: #f7f7fb;
   display: flex;
   position: relative;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* subtle background layers (like Auth.vue) */
@@ -186,7 +188,14 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.el-container { position: relative; z-index: 1; }
+.el-container { 
+  position: relative; 
+  z-index: 1; 
+  width: 100%;
+  max-width: 100vw; /* 🔥 防止被子元素撑开 */
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
 
 .el-main {
   background: transparent;
@@ -305,11 +314,13 @@ onUnmounted(() => {
 .main-container {
   margin-left: var(--sidebar-w);
   width: calc(100% - var(--sidebar-w)); /* fill the rest to the right */
+  max-width: calc(100vw - var(--sidebar-w)); /* 🔥 防止被子元素撑开 */
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   height: 100vh;
   overflow: hidden; /* prevent body scrollbars */
+  box-sizing: border-box; /* 确保 padding 不会导致溢出 */
 }
 .admin-header {
   position: fixed;
@@ -339,6 +350,8 @@ onUnmounted(() => {
   overflow: auto; /* internal scroll only */
   overflow-x: hidden; /* no horizontal growth */
   -webkit-overflow-scrolling: touch;
+  min-width: 0; /* 🔥 允许 flex 子元素缩小到内容以下 */
+  box-sizing: border-box; /* 确保 padding 计入尺寸 */
 }
 
 .admin-footer {
@@ -349,6 +362,8 @@ onUnmounted(() => {
   border-top: 1px solid rgba(0,0,0,0.06);
   background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
   backdrop-filter: blur(6px);
+  min-width: 0; /* 🔥 允许 flex 子元素缩小 */
+  box-sizing: border-box;
 }
 
 /* ===== Mobile & responsive ===== */

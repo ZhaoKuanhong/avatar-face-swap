@@ -88,6 +88,7 @@
         </div>
 
         <!-- Konva 画布 -->
+        <div class="stage-wrapper">
           <v-stage
               ref="stage"
               :config="stageConfig"
@@ -135,6 +136,7 @@
               />
             </v-layer>
           </v-stage>
+        </div>
 
         <!-- 画布控制工具 -->
         <div class="canvas-controls" v-show="stageReady && !loading">
@@ -220,15 +222,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
 import { apiClient } from "@/api/axios.js"
-import { ElMessage } from 'element-plus'
 import {
-  Minus, Plus, RefreshLeft, Back, Right,
-  FullScreen, Download, ArrowDown, View, Location,
-  Edit, Timer, QuestionFilled
+    ArrowDown,
+    Back,
+    Download,
+    Edit,
+    FullScreen,
+    Location,
+    Minus, Plus,
+    QuestionFilled,
+    RefreshLeft,
+    Right,
+    Timer,
+    View
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const eventId = route.params.event_id
@@ -1095,9 +1106,13 @@ document.addEventListener('fullscreenchange', () => {
   display: flex;
   flex-direction: column;
   height: 87vh;
+  width: 100%;
+  max-width: 100%; /* 🔥 防止被子元素撑开 */
   background: linear-gradient(135deg, rgba(255, 236, 242, 0.3) 0%, rgba(255, 245, 250, 0.3) 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0; /* 🔥 允许 flex 子元素缩小 */
 }
 
 /* 工具栏样式 */
@@ -1111,6 +1126,8 @@ document.addEventListener('fullscreenchange', () => {
   box-shadow: 0 4px 16px rgba(196, 30, 58, 0.1);
   z-index: 1000;
   backdrop-filter: blur(10px);
+  min-width: 0; /* 🔥 允许工具栏缩小 */
+  box-sizing: border-box;
 }
 
 .toolbar-section {
@@ -1163,6 +1180,10 @@ document.addEventListener('fullscreenchange', () => {
   display: flex;
   overflow: hidden;
   position: relative;
+  width: 100%;
+  max-width: 100%; /* 🔥 防止被子元素撑开 */
+  min-width: 0; /* 🔥 允许 flex 子元素缩小 */
+  box-sizing: border-box;
 }
 
 .editor-main.fullscreen {
@@ -1179,25 +1200,47 @@ document.addEventListener('fullscreenchange', () => {
 .canvas-container {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  overflow: hidden !important; /* 🔥 强制隐藏溢出 */
   background: linear-gradient(135deg, rgba(255, 245, 250, 0.5) 0%, rgba(255, 236, 242, 0.5) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  width: 100%;
+  max-width: 100%; /* 🔥 防止被子元素撑开 */
+  min-width: 0; /* 🔥 允许 flex 子元素缩小 */
+  box-sizing: border-box;
 }
 
+/* Stage 包裹层 - 关键：防止内容溢出 */
 .stage-wrapper {
+  position: relative;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   background: #ffffff;
-  overflow: hidden;
+  overflow: hidden !important; /* 🔥 强制隐藏溢出 */
   transition: all 0.3s ease;
+  /* 🔥 填满父容器 */
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
 }
 
 .stage-wrapper:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* 🔥 确保 Konva 生成的容器也填满并被限制 */
+.stage-wrapper > div {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box;
 }
 
 /* 加载状态 */
