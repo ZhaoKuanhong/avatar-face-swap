@@ -4,6 +4,7 @@ import os
 from blueprints.auth import auth_bp
 from blueprints.events import events_bp
 from dotenv import load_dotenv
+from download_models import check_and_download_models_if_needed
 from flask import Flask, current_app, redirect
 from flask_cors import CORS
 from lib.db_utils import close_connection
@@ -21,6 +22,13 @@ def create_app():
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a-strong-dev-secret-key')
     app.config['JWT_SECRET'] = os.environ.get('JWT_SECRET', 'a-strong-jwt-secret')
     CORS(app)
+    
+    # --- 检查并下载模型（首次启动时） ---
+    print("\n" + "=" * 60)
+    print("正在检查人脸检测模型...")
+    print("=" * 60)
+    check_and_download_models_if_needed()
+    print("=" * 60 + "\n")
     
     # --- Database Connection Cleanup ---
     app.teardown_appcontext(close_connection)

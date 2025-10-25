@@ -1,10 +1,11 @@
-import os
-import urllib.request
-import urllib.error
 import hashlib
 import json
-from pathlib import Path
+import os
 import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
 
 # 模型配置
 MODELS_CONFIG = {
@@ -57,7 +58,7 @@ def create_models_dir():
 def download_file(url: str, filepath: Path, description: str) -> bool:
     """下载单个文件"""
     try:
-        print(f"📥 正在下载: {description}")
+        print(f"正在下载: {description}")
         print(f"   URL: {url}")
         print(f"   保存到: {filepath}")
         
@@ -78,25 +79,6 @@ def download_file(url: str, filepath: Path, description: str) -> bool:
         print(f"\n[ERROR]下载异常: {e}")
         return False
 
-def verify_file_size(filepath: Path, expected_size: str) -> bool:
-    """验证文件大小（简单检查）"""
-    if not filepath.exists():
-        return False
-    
-    actual_size = filepath.stat().st_size
-    
-    # 简单的大小估算（转换MB/KB为字节）
-    if "MB" in expected_size:
-        expected_bytes = float(expected_size.replace("MB", "")) * 1024 * 1024
-        tolerance = 0.1  # 10%误差
-    elif "KB" in expected_size:
-        expected_bytes = float(expected_size.replace("KB", "")) * 1024
-        tolerance = 0.2  # 20%误差
-    else:
-        return True  # 无法验证，认为通过
-    
-    return abs(actual_size - expected_bytes) / expected_bytes <= tolerance
-
 def download_models():
     """下载所有模型文件"""
     models_dir = create_models_dir()
@@ -116,28 +98,23 @@ def download_models():
         print(f"   描述: {config['description']}")
         print(f"   大小: {config['size']}")
         
-        # 如果文件已存在且大小正确，跳过
+        # 如果文件已存在，跳过下载
         if filepath.exists():
-            if verify_file_size(filepath, config['size']):
-                print(f"[OK]文件已存在且正确: {filename}")
-                success_count += 1
-                continue
-            else:
-                print(f"[WARNING]文件存在但大小不正确，重新下载: {filename}")
-                filepath.unlink()  # 删除旧文件
+            print(f"[OK]文件已存在: {filename}")
+            success_count += 1
+            continue
         
         # 尝试从多个URL下载
         downloaded = False
         for url in config['urls']:
             if download_file(url, filepath, config['description']):
-                # 验证下载的文件
-                if verify_file_size(filepath, config['size']):
+                # 检查文件是否成功创建
+                if filepath.exists():
                     success_count += 1
                     downloaded = True
                     break
                 else:
-                    print(f"[WARNING]下载的文件大小不正确，尝试下一个源")
-                    filepath.unlink()
+                    print(f"[WARNING]下载失败，尝试下一个源")
         
         if not downloaded:
             failed_models.append(filename)
@@ -217,7 +194,6 @@ def main():
         
         if success:
             print("\n[OK]模型下载完成！现在可以安全部署到服务器了")
-            print("💡 提示: 将整个models目录上传到服务器")
             return 0
         else:
             print("\n[ERROR]部分模型下载失败，请检查后重试")
@@ -229,6 +205,101 @@ def main():
     except Exception as e:
         print(f"\n[ERROR]下载过程中出现异常: {e}")
         return 1
+
+def check_and_download_models_if_needed():
+    """
+    检查模型是否存在，如果不存在则自动下载
+    用于应用启动时的自动检查
+    使用文件锁防止多个进程同时下载
+    """
+    models_dir = Path("models")
+    lock_file = models_dir / ".download.lock"
+    
+    # 创建模型目录
+    models_dir.mkdir(exist_ok=True)
+    
+    # 检查必需的模型文件
+    required_models = [f for f, config in MODELS_CONFIG.items() 
+                      if not config.get('optional', False)]
+    
+    missing_models = []
+    for filename in required_models:
+        filepath = models_dir / filename
+        if not filepath.exists():
+            missing_models.append(filename)
+    
+    if not missing_models:
+        print("[OK] 所有必需模型文件已存在")
+        return True
+    
+    print(f"[WARNING] 检测到缺失的模型文件: {missing_models}")
+    
+    # 尝试获取锁
+    max_wait = 300  # 最多等待5分钟
+    wait_time = 0
+    lock_acquired = False
+    
+    while wait_time < max_wait:
+        if not lock_file.exists():
+            try:
+                # 创建锁文件
+                lock_file.touch()
+                lock_acquired = True
+                print("[INFO] 获取下载锁，开始自动下载模型...")
+                break
+            except Exception as e:
+                print(f"[WARNING] 无法创建锁文件: {e}")
+                time.sleep(1)
+                wait_time += 1
+        else:
+            # 检查锁文件的年龄
+            lock_age = time.time() - lock_file.stat().st_mtime
+            if lock_age > 600:  # 锁文件超过10分钟，认为是死锁
+                print("[WARNING] 检测到过期的锁文件，清除并重试...")
+                try:
+                    lock_file.unlink()
+                except:
+                    pass
+            else:
+                print(f"[INFO] 其他进程正在下载模型，等待中... ({wait_time}s/{max_wait}s)")
+                time.sleep(5)
+                wait_time += 5
+                
+                # 重新检查模型是否已下载
+                missing_models = []
+                for filename in required_models:
+                    filepath = models_dir / filename
+                    if not filepath.exists():
+                        missing_models.append(filename)
+                
+                if not missing_models:
+                    print("[OK] 其他进程已完成模型下载")
+                    return True
+    
+    if not lock_acquired:
+        print("[ERROR] 无法获取下载锁，超时")
+        return False
+    
+    try:
+        # 执行下载
+        success = download_models()
+        if success:
+            print("[OK] 模型下载完成，应用启动继续")
+            return True
+        else:
+            print("[ERROR] 模型下载失败，应用可能无法正常工作")
+            return False
+    except Exception as e:
+        print(f"[ERROR] 模型下载异常: {e}")
+        return False
+    finally:
+        # 释放锁
+        try:
+            if lock_file.exists():
+                lock_file.unlink()
+                print("[INFO] 释放下载锁")
+        except Exception as e:
+            print(f"[WARNING] 无法删除锁文件: {e}")
 
 if __name__ == "__main__":
     sys.exit(main())

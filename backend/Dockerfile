@@ -15,9 +15,6 @@ COPY gunconf.py /app/
 COPY app.py /app/
 COPY download_models.py /app/
 
-# 下载人脸检测模型（确保模型可用）
-RUN python download_models.py
-
 # 设置 Flask 环境变量
 ENV FLASK_APP=app.py
 
