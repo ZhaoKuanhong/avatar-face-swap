@@ -383,7 +383,7 @@ onUnmounted(() => {
 
 
 @media (max-width: 768px) {
-  .main-container { margin-left: 0; width: 100%; display: flex; flex-direction: column; height: 100vh; }
+  .main-container { margin-left: 0; max-width: 100vw; display: flex; flex-direction: column; height: 100vh; }
   .sidebar { transform: translateX(-100%); left: 0; }
   .sidebar.mobile-sidebar-open { transform: translateX(0); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
   .admin-header { left: 0; right: 0; height: var(--header-h-sm) !important; padding: 0 56px 0 72px; }
@@ -392,7 +392,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .admin-header { left: 0; height: var(--header-h-sm) !important; padding: 0 48px 0 68px; }
+  .admin-header { left: 0; max-width: 100vw; height: var(--header-h-sm) !important; padding: 0 48px 0 68px; }
   .admin-main { padding: calc(16px + var(--header-h-sm)) 12px 18px 12px; }
   .logo { width: 56px; height: 56px; border-radius: 14px; }
   .brand-title { font-size: 14px; }
