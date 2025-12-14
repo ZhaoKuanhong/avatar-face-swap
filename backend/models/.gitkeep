@@ -1,0 +1,9 @@
+# 此目录用于存放人脸检测模型文件
+# 模型将在首次运行时自动下载
+# 
+# 包含的模型：
+# - face_detection_yunet_2023mar.onnx (YuNet)
+# - deploy.prototxt + res10_300x300_ssd_iter_140000.caffemodel (DNN SSD)
+# - scrfd_10g_bnkps.onnx (SCRFD)
+#
+# 运行 `python download_models.py` 手动下载模型

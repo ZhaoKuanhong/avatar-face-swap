@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# Event data (用户上传的活动数据)
+event/
+
+# 模型文件（由 download_models.py 在构建时下载）
+models/*.onnx
+models/*.caffemodel
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 日志
+*.log
+
+# 临时文件
+.DS_Store
+*.tmp
+*.temp
