@@ -127,17 +127,7 @@ docker run -p 5000:5000 --env-file .env avatar-face-swap
 
 ## 演示
 
-登录页面
-
-![Login.png](IMAGE_URL_LOGIN)
-
-选择页面
-
-![Main.png](IMAGE_URL_MAIN)
-
-管理页面
-
-![EventList.png](IMAGE_URL_ADMIN)
+https://activity.gdutbandori.org/
 
 ## License
 
