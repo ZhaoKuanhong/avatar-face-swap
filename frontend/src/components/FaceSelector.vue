@@ -1,43 +1,53 @@
 <template>
-  <div>
-    <h2>选择你的大头</h2>
+  <div class="face-selector">
+    <h2 class="selector-title">选择你的大头</h2>
 
     <div v-if="faces.length > 0" class="face-list">
       <div
-        v-for="face in faces"
+        v-for="(face, index) in faces"
         :key="face"
         class="face-item"
         @click="selectFace(face)"
         :class="{ selected: selectedFace === face }"
       >
-        <img
-          v-if="faceUrlMap[face]"
-          :src="faceUrlMap[face]"
-          :alt="face"
-          class="face-image"
-          style="height: 100px"
-          loading="lazy"
-        />
-        <div v-else class="face-loading">
-          <div class="loading-spinner-small"></div>
+        <div class="face-image-wrapper">
+          <img
+            v-if="faceUrlMap[face]"
+            :src="faceUrlMap[face]"
+            :alt="face"
+            class="face-image"
+            loading="lazy"
+          />
+          <div v-else class="face-loading">
+            <div class="loading-spinner-small"></div>
+          </div>
+          <div class="face-check" v-if="selectedFace === face">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
         </div>
-        <p>{{ face }}</p>
+        <span class="face-label">{{ index + 1 }}</span>
       </div>
     </div>
     <div v-else-if="loading" class="loading-skeleton">
       <div class="skeleton-grid">
-        <div v-for="i in 6" :key="i" class="skeleton-item">
+        <div v-for="i in 8" :key="i" class="skeleton-item">
           <el-skeleton animated>
             <template #template>
-              <el-skeleton-item variant="image" style="width: 80px; height: 80px; border-radius: 4px;" />
-              <el-skeleton-item variant="text" style="width: 60px; margin-top: 8px;" />
+              <el-skeleton-item variant="image" class="skeleton-image" />
+              <el-skeleton-item variant="text" class="skeleton-text" />
             </template>
           </el-skeleton>
         </div>
       </div>
     </div>
-    <p v-else>没有找到任何人脸图片。</p>
-    <p v-if="selectedFace">你选择了: {{ selectedFace }}</p>
+    <div v-else class="empty-state">
+      <p>没有找到任何人脸图片</p>
+    </div>
+    <div v-if="selectedFace" class="selection-hint">
+      <span>已选择第 {{ faces.indexOf(selectedFace) + 1 }} 个人脸</span>
+    </div>
   </div>
 </template>
 
@@ -115,79 +125,213 @@ function selectFace(face) {
 </script>
 
 <style scoped>
+.face-selector {
+  width: 100%;
+}
+
+.selector-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
 .face-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+  padding: 4px;
 }
 
 .face-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
+  background: #fff;
+  border: 2px solid #eee;
+  border-radius: 12px;
+  padding: 10px 8px 8px;
   cursor: pointer;
-  transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.face-item:hover {
+  border-color: #FF3377;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 51, 119, 0.15);
 }
 
 .face-item.selected {
-  border-color: #409EFF;
-  box-shadow: 0 0 8px rgba(64, 158, 255, 0.7);
+  border-color: #FF3377;
+  background: linear-gradient(135deg, #fff5f8 0%, #fff 100%);
+  box-shadow: 0 4px 16px rgba(255, 51, 119, 0.25);
+  transform: translateY(-2px);
+}
+
+.face-image-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 80px;
+  margin: 0 auto;
 }
 
 .face-image {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 5px;
+  border-radius: 8px;
 }
 
-.face-name {
-  font-size: 12px;
-  text-align: center;
-  margin-top: 0;
+.face-check {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  background: #FF3377;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(255, 51, 119, 0.4);
+}
+
+.face-check svg {
+  width: 14px;
+  height: 14px;
+  color: white;
+}
+
+.face-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+}
+
+.face-item.selected .face-label {
+  color: #FF3377;
+  font-weight: 600;
 }
 
 .loading-skeleton {
-  margin: 20px 0;
+  padding: 4px;
 }
 
 .skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
 }
 
 .skeleton-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px;
+  padding: 10px 8px 8px;
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #eee;
+}
+
+.skeleton-image {
+  width: 100% !important;
+  max-width: 80px !important;
+  aspect-ratio: 1 !important;
+  border-radius: 8px !important;
+}
+
+.skeleton-text {
+  width: 40px !important;
+  margin-top: 8px !important;
 }
 
 .face-loading {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: #f8f8f8;
+  border-radius: 8px;
 }
 
 .loading-spinner-small {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e0e0e0;
-  border-top-color: #409EFF;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #eee;
+  border-top-color: #FF3377;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.selection-hint {
+  text-align: center;
+  margin-top: 1rem;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #fff5f8 0%, #fff 100%);
+  border-radius: 20px;
+  color: #FF3377;
+  font-weight: 500;
+  font-size: 14px;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+  .face-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  
+  .face-item {
+    padding: 8px 6px 6px;
+    border-radius: 10px;
+  }
+  
+  .face-check {
+    width: 20px;
+    height: 20px;
+    bottom: -4px;
+    right: -4px;
+  }
+  
+  .face-check svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .face-label {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .face-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 769px) {
+  .face-list {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  
+  .face-image-wrapper {
+    max-width: 90px;
+  }
 }
 </style>
