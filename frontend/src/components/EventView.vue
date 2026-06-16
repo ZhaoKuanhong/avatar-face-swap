@@ -201,7 +201,7 @@
     <el-dialog
         v-model="deleteDialogVisible"
         title="删除人脸确认"
-        width="400px"
+        width="min(400px, 92vw)"
         center
         destroy-on-close
     >

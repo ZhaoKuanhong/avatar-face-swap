@@ -324,6 +324,9 @@ const backgroundConfig = computed(() => ({
 const canUndo = computed(() => historyIndex.value > 0)
 const canRedo = computed(() => historyIndex.value < history.value.length - 1)
 
+// 触控设备(手指)需要更大的变换手柄才好抓取
+const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches
+
 // 变换器配置
 const transformerConfig = ref({
   rotateEnabled: true,
@@ -331,7 +334,7 @@ const transformerConfig = ref({
   borderStrokeWidth: 2,
   anchorStroke: '#FF3377',
   anchorFill: '#FF3377',
-  anchorSize: 12,
+  anchorSize: isCoarsePointer ? 20 : 12,
   keepRatio: true, // 大头覆盖锁定宽高比，避免被拉伸变形
   enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 })
@@ -1622,6 +1625,30 @@ kbd {
   
   .hint-text {
     text-align: center;
+  }
+
+  /* 触控优化:工具栏所有按钮放大到 ≥40px，符合手指点击的最小目标 */
+  .toolbar :deep(.el-button) {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .zoom-controls,
+  .action-controls,
+  .view-controls,
+  .export-controls,
+  .manual-face-controls {
+    gap: 8px;
+  }
+  .zoom-display {
+    min-width: 52px;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+  /* 浮动画布控制(适应屏幕/实际大小/居中)圆钮放大 */
+  .canvas-controls :deep(.el-button.is-circle) {
+    width: 42px;
+    height: 42px;
   }
 }
 

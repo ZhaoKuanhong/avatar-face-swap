@@ -414,7 +414,8 @@ body {
   right: 0;
   font-size: 0.75rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(74, 21, 38, 0.72); /* 深枣红,在浅色背景图上清晰可读,呼应主题色 */
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.45); /* 浅色描边,提升边缘清晰度 */
   z-index: 10;
   padding: 0 1rem;
 }

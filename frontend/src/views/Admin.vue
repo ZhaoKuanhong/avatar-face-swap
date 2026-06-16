@@ -401,6 +401,9 @@ onUnmounted(() => {
   .admin-header { left: 0; right: 0; height: var(--header-h-sm) !important; padding: 0 56px 0 72px; }
   .admin-main { padding: calc(18px + var(--header-h-sm)) 16px 20px 16px; }
   .mobile-menu-btn { display: grid; top: 14px; left: 14px; width: 40px; height: 40px; }
+  /* 移动端隐藏欢迎语，把空间让给面包屑，避免两者互相挤压换行 */
+  .welcome-text { display: none; }
+  .breadcrumb-container { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 }
 
 @media (max-width: 480px) {
