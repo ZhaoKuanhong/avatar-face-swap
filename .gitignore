@@ -15,6 +15,7 @@ __pycache__/
 
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -48,14 +49,12 @@ coverage/
 htmlcov/
 .pytest_cache/
 
-
-# Copilot 指令文件（内部使用）
 .github/copilot-instructions.md
 
-# 旧的输入/输出目录
 img/
 input/
 
-# 根目录的 package 文件（前端在 frontend/ 目录）
 /package.json
 /package-lock.json
+
+/API_CONTRACT.md

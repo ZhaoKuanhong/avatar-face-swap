@@ -99,7 +99,7 @@ def delete_event(event_id):
         return jsonify(error=f"删除事件时发生错误: {str(e)}"), 500
 
 
-@events_bp.route('/api/events/<event_id>/faces/<face_filename>/info')
+@events_bp.route('/api/events/<event_id>/faces/<face_filename>/qq-profile')
 @requires_event_permission
 def get_face_qq_info(event_id, face_filename):
     try:
@@ -114,7 +114,7 @@ def get_face_qq_info(event_id, face_filename):
         return jsonify(error=str(e), qq_number=None), 500
 
 
-@events_bp.route('/api/events/<event_id>/qq-nickname/<qq_number>')
+@events_bp.route('/api/events/<event_id>/qq-profiles/<qq_number>')
 @requires_event_permission
 def get_qq_nickname(event_id, qq_number):
     try:
@@ -140,7 +140,7 @@ def get_event_qr_code(event_id):
     return jsonify(token=token)
 
 
-@events_bp.route('/api/events/<event_id>/pic', methods=['GET'])
+@events_bp.route('/api/events/<event_id>/picture', methods=['GET'])
 @requires_event_permission
 def get_event_pic(event_id):
     from flask import make_response
@@ -151,7 +151,7 @@ def get_event_pic(event_id):
     return response
 
 
-@events_bp.route('/api/events/<event_id>/pic/info', methods=['GET'])
+@events_bp.route('/api/events/<event_id>/picture/metadata', methods=['GET'])
 @requires_admin_permission
 def get_event_pic_info(event_id):
     try:
@@ -172,7 +172,7 @@ def get_event_faces(event_id):
     return jsonify(faces=face_files, event_id=event_id)
 
 
-@events_bp.route('/api/events/<event_id>/faces/info')
+@events_bp.route('/api/events/<event_id>/faces/metadata')
 @requires_admin_permission
 def get_event_faces_info(event_id):
     try:
@@ -210,7 +210,7 @@ def delete_face(event_id, face_filename):
         return jsonify(error=f'删除人脸失败: {str(e)}'), 500
 
 
-@events_bp.route('/api/events/<int:event_id>/faces/add-manual', methods=['POST'])
+@events_bp.route('/api/events/<int:event_id>/faces', methods=['POST'])
 @requires_admin_permission
 def add_manual_face(event_id):
     try:
@@ -257,7 +257,7 @@ def get_event_face_image(event_id, filename):
     return response
 
 
-@events_bp.route('/api/events/<event_id>/faces/upload/<filename>')
+@events_bp.route('/api/events/<event_id>/avatars/<filename>')
 @requires_event_permission
 def get_upload_face_image(event_id, filename):
     from flask import make_response
@@ -268,7 +268,7 @@ def get_upload_face_image(event_id, filename):
     return response
 
 
-@events_bp.route('/api/upload/<event_id>/<selected_face>', methods=['POST'])
+@events_bp.route('/api/events/<event_id>/faces/<selected_face>/avatar', methods=['POST'])
 @requires_event_permission
 def upload_file(event_id, selected_face):
     if 'file' not in request.files: return jsonify(error='No file part'), 400
@@ -284,7 +284,7 @@ def upload_file(event_id, selected_face):
     return jsonify(error='Allowed file types are png, jpg, jpeg'), 400
 
 
-@events_bp.route('/api/upload-qq-avatar/<event_id>/<selected_face>', methods=['POST'])
+@events_bp.route('/api/events/<event_id>/faces/<selected_face>/qq-avatar', methods=['POST'])
 @requires_event_permission
 def upload_qq_avatar(event_id, selected_face):
     qq_number = request.json.get('qqNumber')
@@ -301,7 +301,7 @@ def get_system_logs():
     return jsonify(get_logs(args.get('page', 1, type=int), args.get('per_page', 20, type=int), args.get('level'), args.get('module'), args.get('start_date'), args.get('end_date')))
 
 
-@events_bp.route('/api/events/<int:event_id>/upload-pic', methods=['POST'])
+@events_bp.route('/api/events/<int:event_id>/picture', methods=['PUT'])
 @requires_admin_permission
 def upload_event_pic(event_id):
     if 'file' not in request.files: return jsonify(error='No file part'), 400
@@ -318,7 +318,7 @@ def upload_event_pic(event_id):
     return jsonify(error='不支持的文件类型'), 400
 
 
-@events_bp.route('/api/events/<int:event_id>/process-status', methods=['GET'])
+@events_bp.route('/api/events/<int:event_id>/status', methods=['GET'])
 @requires_admin_permission
 def get_process_status(event_id):
     try:
@@ -334,7 +334,7 @@ def get_process_status(event_id):
         return jsonify(error=f'获取状态失败: {str(e)}'), 500
 
 
-@events_bp.route('/api/debug/detector-status', methods=['GET'])
+@events_bp.route('/api/system/detector-status', methods=['GET'])
 @requires_admin_permission
 def get_detector_status():
     """

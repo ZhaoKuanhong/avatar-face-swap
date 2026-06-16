@@ -68,7 +68,7 @@ const goToAbout = () => {
 
 const adminLogin = () => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5001';
-  window.location.href = `${baseUrl}/api/login`;
+  window.location.href = `${baseUrl}/api/auth/sso/login`;
 };
 
 const verifyToken = async () => {
@@ -78,7 +78,7 @@ const verifyToken = async () => {
   loading.value = true;
 
   try {
-    const response = await apiClient.post('/verify', { token: token.value });
+    const response = await apiClient.post('/auth/sessions', { token: token.value });
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
     }

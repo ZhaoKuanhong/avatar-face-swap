@@ -281,7 +281,7 @@ const uploadQQAvatar = async () => {
   uploadButton.value = 'primary';
 
   try {
-    const res = await apiClient.post(`/upload-qq-avatar/${props.event_id}/${selectedFace.value}`, {
+    const res = await apiClient.post(`/events/${props.event_id}/faces/${selectedFace.value}/qq-avatar`, {
       qqNumber: qqNumber.value,
       faceId: selectedFace.value,
       eventId: props.event_id,

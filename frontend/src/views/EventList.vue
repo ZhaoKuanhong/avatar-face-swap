@@ -711,7 +711,7 @@ const fetchDetectorStatus = async () => {
   try {
     detectorStatusLoading.value = true;
     console.log('[Debug] 获取检测器状态...');
-    const response = await apiClient.get('/debug/detector-status');
+    const response = await apiClient.get('/system/detector-status');
     console.log('[Debug] API响应:', response.data);
     
     // 后端返回格式: { success: true, detector_status: {...}, message: "..." }
@@ -812,8 +812,8 @@ const submitUpload = async () => {
     formData.append('file', fileList.value[0].raw);
 
     processingProgress.value = 30;
-    const response = await apiClient.post(
-        `/events/${currentEventId.value}/upload-pic`,
+    const response = await apiClient.put(
+        `/events/${currentEventId.value}/picture`,
         formData,
         {
           headers: {
@@ -852,7 +852,7 @@ const checkProcessStatus = () => {
   statusCheckInterval.value = setInterval(async () => {
     try {
       checkCount++;
-      const response = await apiClient.get(`/events/${currentEventId.value}/process-status`);
+      const response = await apiClient.get(`/events/${currentEventId.value}/status`);
 
       if (response.data.status === 'completed') {
         processingProgress.value = 100;

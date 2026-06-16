@@ -392,25 +392,25 @@ class ConcurrentLoader {
 
 // API函数
 const fetchBackground = async () => {
-  const res = await apiClient.get(`/events/${eventId}/pic`, {
+  const res = await apiClient.get(`/events/${eventId}/picture`, {
     responseType: 'blob'
   })
   return URL.createObjectURL(res.data)
 }
 
 const fetchBackgroundInfo = async () => {
-  const res = await apiClient.get(`/events/${eventId}/pic/info`)
+  const res = await apiClient.get(`/events/${eventId}/picture/metadata`)
   return res.data.pic_info
 }
 
 const fetchFacesInfo = async () => {
-  const res = await apiClient.get(`/events/${eventId}/faces/info`)
+  const res = await apiClient.get(`/events/${eventId}/faces/metadata`)
   return res.data.faces
 }
 
 const fetchFaceImage = async (filename) => {
   try {
-    const res = await apiClient.get(`/events/${eventId}/faces/upload/${filename}`, {
+    const res = await apiClient.get(`/events/${eventId}/avatars/${filename}`, {
       responseType: 'blob'
     })
     return URL.createObjectURL(res.data)
@@ -835,7 +835,7 @@ const finishDrawingFace = async (e) => {
   
   try {
     // 调用API添加人脸
-    const response = await apiClient.post(`/events/${eventId}/faces/add-manual`, {
+    const response = await apiClient.post(`/events/${eventId}/faces`, {
       x1, y1, x2, y2,
       face_id: `manual_${Date.now()}`
     })

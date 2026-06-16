@@ -9,13 +9,13 @@ auth_bp = Blueprint('auth', __name__)
 FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://localhost:5173')
 
 
-@auth_bp.route('/api/login')
+@auth_bp.route('/api/auth/sso/login')
 def login():
     redirect_uri = url_for('auth.auth', _external=True)
     return oauth.keycloak.authorize_redirect(redirect_uri)
 
 
-@auth_bp.route('/api/auth')
+@auth_bp.route('/api/auth/sso/callback')
 def auth():
     token = oauth.keycloak.authorize_access_token()
     userinfo = token.get('userinfo', {})
@@ -39,7 +39,7 @@ def auth():
     return redirect(redirect_url)
 
 
-@auth_bp.route('/api/logout')
+@auth_bp.route('/api/auth/sessions/current', methods=['DELETE'])
 def logout():
     session.pop('user', None)
     # Ensure server_metadata is loaded
@@ -58,7 +58,7 @@ def logout():
     return redirect(f"{logout_endpoint}?post_logout_redirect_uri={post_logout_redirect_uri}&client_id={oauth.keycloak.client_id}")
 
 
-@auth_bp.route('/api/profile')
+@auth_bp.route('/api/auth/profile')
 def profile():
     user = session.get('user')
     if not user:
@@ -66,7 +66,7 @@ def profile():
     return jsonify(user)
 
 
-@auth_bp.route('/api/verify', methods=['POST'])
+@auth_bp.route('/api/auth/sessions', methods=['POST'])
 def verify_token():
     """验证口令并返回 event_id 和 description"""
     data = request.get_json()
@@ -107,7 +107,7 @@ def verify_token():
             return jsonify(error='无效的 token'), 404
 
 
-@auth_bp.route('/api/verify-token', methods=['POST'])
+@auth_bp.route('/api/auth/tokens/verify', methods=['POST'])
 def check_token():
     data = request.get_json()
     token = data.get('token')

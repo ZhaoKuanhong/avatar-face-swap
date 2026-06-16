@@ -95,37 +95,6 @@
                 </el-button>
               </div>
             </div>
-            <el-dialog
-                v-model="deleteDialogVisible"
-                title="删除人脸确认"
-                width="400px"
-                center
-            >
-              <div class="delete-dialog-content">
-                <div class="warning-icon">
-                  <i class="el-icon-warning-outline"></i>
-                </div>
-                <p>确定要删除这个人脸吗？</p>
-                <p class="warning-text">
-                  <strong>注意：</strong>删除后将同时移除相关的用户上传数据，此操作不可恢复！
-                </p>
-                <div v-if="faceToDelete" class="face-preview">
-                  <img :src="faceUrlMap[faceToDelete]" :alt="faceToDelete" />
-                  <span>{{ faceToDelete }}</span>
-                </div>
-              </div>
-
-              <template #footer>
-                <el-button @click="cancelDelete">取消</el-button>
-                <el-button
-                    type="danger"
-                    @click="confirmDelete"
-                    :loading="deleteLoading"
-                >
-                  确认删除
-                </el-button>
-              </template>
-            </el-dialog>
           </template>
 
           <div class="face-content">
@@ -227,6 +196,40 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 删除确认对话框 -->
+    <el-dialog
+        v-model="deleteDialogVisible"
+        title="删除人脸确认"
+        width="400px"
+        center
+        destroy-on-close
+    >
+      <div class="delete-dialog-content">
+        <div class="warning-icon">
+          <el-icon size="48" color="#E6A23C"><WarningFilled /></el-icon>
+        </div>
+        <p class="delete-confirm-text">确定要删除这个人脸吗？</p>
+        <p class="warning-text">
+          <strong>注意：</strong>删除后将同时移除相关的用户上传数据，此操作不可恢复！
+        </p>
+        <div v-if="faceToDelete" class="face-preview">
+          <img :src="faceUrlMap[faceToDelete]" :alt="faceToDelete" />
+          <span>{{ faceToDelete }}</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="cancelDelete">取消</el-button>
+        <el-button
+            type="danger"
+            @click="confirmDelete"
+            :loading="deleteLoading"
+        >
+          确认删除
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -235,7 +238,7 @@ import { apiClient } from '@/api/axios';
 import { useRoute } from "vue-router";
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import {Right} from "@element-plus/icons-vue";
+import { Right, WarningFilled } from "@element-plus/icons-vue";
 import pLimit from 'p-limit';
 
 const route = useRoute();
@@ -258,7 +261,7 @@ const uploadedCount = computed(() => {
 
 const fetchEventPic = async () => {
   try {
-    const res = await apiClient.get(`/events/${eventId}/pic`, {
+    const res = await apiClient.get(`/events/${eventId}/picture`, {
       responseType: 'blob'
     });
     eventPicUrl.value = URL.createObjectURL(res.data);
@@ -319,7 +322,7 @@ async function loadFaceImage(face) {
 
 async function loadAvatarImage(face) {
   try {
-    const response = await apiClient.get(`/events/${eventId}/faces/upload/${face}`, {
+    const response = await apiClient.get(`/events/${eventId}/avatars/${face}`, {
       responseType: 'blob',
     });
     const avatarBlobUrl = URL.createObjectURL(response.data);
@@ -332,7 +335,7 @@ async function loadAvatarImage(face) {
 
 async function loadFaceQQInfo(face) {
   try {
-    const response = await apiClient.get(`/events/${eventId}/faces/${face}/info`);
+    const response = await apiClient.get(`/events/${eventId}/faces/${face}/qq-profile`);
     const qqNumber = response.data.qq_number;
     if (qqNumber) {
       faceQQMap.value[face] = qqNumber;
@@ -345,7 +348,7 @@ async function loadFaceQQInfo(face) {
 
 async function fetchQQNickname(face, qqNumber) {
   try {
-    const response = await apiClient.get(`/events/${eventId}/qq-nickname/${qqNumber}`);
+    const response = await apiClient.get(`/events/${eventId}/qq-profiles/${qqNumber}`);
     if (response.data.success && response.data.nickname) {
       faceNicknameMap.value[face] = response.data.nickname;
     } else {
@@ -809,15 +812,25 @@ onBeforeUnmount(() => {
 }
 
 .warning-icon {
-  font-size: 3rem;
-  color: #e6a23c;
-  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.delete-confirm-text {
+  font-size: 16px;
+  color: #303133;
+  margin: 0 0 8px 0;
 }
 
 .warning-text {
-  color: #e6a23c;
-  font-size: 0.9rem;
-  margin-top: 10px;
+  color: #E6A23C;
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 16px;
+  background: #fdf6ec;
+  border-radius: 4px;
+  line-height: 1.5;
 }
 
 .face-preview {
@@ -825,10 +838,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  margin-top: 15px;
-  padding: 15px;
-  background: #f9f9f9;
+  margin-top: 16px;
+  padding: 16px;
+  background: #f5f7fa;
   border-radius: 8px;
+  border: 1px solid #e4e7ed;
 }
 
 .face-preview img {
@@ -836,11 +850,13 @@ onBeforeUnmount(() => {
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .face-preview span {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 12px;
+  color: #909399;
+  font-family: monospace;
 }
 
 /* 动画效果 */
