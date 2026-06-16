@@ -928,7 +928,9 @@ const generateRandomPassword = () => {
 .el-main {
   padding: 20px;
   background: transparent;
-  min-height: calc(100vh - 140px);
+  /* 不作为独立滚动容器：交由外层 admin-main 统一滚动，使本页与日志页结构一致，
+     footer 始终独立于内容、铺满容器底部（避免嵌套滚动 + 强制 min-height 造成的错位） */
+  overflow: visible;
 }
 
 /* 顶部区域 */

@@ -32,6 +32,10 @@ const PublicRoutes = [
         },
         children: [
             {
+                path: '',
+                redirect: { name: 'EventList' }
+            },
+            {
                 path: 'list',
                 name: 'EventList',
                 component:  EventList,

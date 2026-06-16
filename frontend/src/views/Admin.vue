@@ -80,7 +80,7 @@
           <router-view />
         </el-main>
 
-        <el-footer class="admin-footer">
+        <el-footer class="admin-footer" height="auto">
           <div class="copyright">Copyright (C) 2025 Faspand & Mio for 広東工業大学アイドル研究部 </div>
           <div class="disclaimer">広東工業大学アイドル研究部は非営利団体であり、本プロジェクトの不適切な使用によって生じたあらゆる問題について、広東工業大学アイドル研究部および本サイトの作者は一切の責任を負いません。</div>
         </el-footer>
@@ -355,8 +355,13 @@ onUnmounted(() => {
 }
 
 .admin-footer {
+  height: auto; /* 随内容自适应高度，取代 el-footer 固定的 60px（否则两行文案被裁切） */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   text-align: center;
-  padding: 18px 12px 28px;
+  padding: 12px 16px;
+  line-height: 1.6;
   color: var(--text-muted);
   font-size: 12px;
   border-top: 1px solid rgba(0,0,0,0.06);
@@ -364,6 +369,13 @@ onUnmounted(() => {
   backdrop-filter: blur(6px);
   min-width: 0; /* 🔥 允许 flex 子元素缩小 */
   box-sizing: border-box;
+}
+
+.admin-footer .disclaimer {
+  font-size: 11px;
+  opacity: 0.85;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* ===== Mobile & responsive ===== */

@@ -120,15 +120,15 @@
                   @dragend="handleFaceDragEnd"
                   @transformend="handleFaceTransform"
               />
+
+              <!-- 变换控制器：必须与被变换的人脸同层，否则手柄会错位/失灵 -->
+              <v-transformer
+                  ref="transformer"
+                  :config="transformerConfig"
+              />
             </v-layer>
 
             <v-layer ref="uiLayer">
-              <!-- 变换控制器 -->
-              <v-transformer
-                  ref="transformer"
-                   :config="transformerConfig"
-              />
-              
               <!-- 手动绘制人脸框 -->
               <v-rect
                   v-if="drawingRect"
@@ -260,6 +260,12 @@ const canvasWidth = ref(0)
 const canvasHeight = ref(0)
 const stageReady = ref(false)
 
+// Stage 显示尺寸（稳定 ref，只在挂载和容器尺寸变化时更新）。
+// 关键：绝不能在缩放时实时读取容器 clientWidth，否则会形成
+// “测量→设为画布尺寸→容器被撑大→再测量” 的反馈循环（滚轮导致画布无限横向扩张）。
+const stageWidth = ref(800)
+const stageHeight = ref(600)
+
 // 加载状态
 const loading = ref(false)
 const loadingText = ref('')
@@ -297,8 +303,8 @@ const faceImages = ref([])
 
 // Stage 配置
 const stageConfig = computed(() => ({
-  width: canvasContainer.value?.clientWidth || 800,
-  height: canvasContainer.value?.clientHeight || 600,
+  width: stageWidth.value,
+  height: stageHeight.value,
   scaleX: stageScale.value,
   scaleY: stageScale.value,
   x: stageX.value,
@@ -326,8 +332,8 @@ const transformerConfig = ref({
   anchorStroke: '#FF3377',
   anchorFill: '#FF3377',
   anchorSize: 12,
-  keepRatio: false,
-  enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']
+  keepRatio: true, // 大头覆盖锁定宽高比，避免被拉伸变形
+  enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right']
 })
 
 // 并发控制类
@@ -467,9 +473,9 @@ const undo = () => {
   }
   selectedFace.value = null
 
-  setTimeout(() => {
+  nextTick(() => {
     isUndoRedo.value = false
-  }, 100)
+  })
 }
 
 const redo = () => {
@@ -490,9 +496,9 @@ const redo = () => {
   }
   selectedFace.value = null
 
-  setTimeout(() => {
+  nextTick(() => {
     isUndoRedo.value = false
-  }, 100)
+  })
 }
 
 // 图片加载辅助函数
@@ -520,35 +526,49 @@ const zoomOut = () => {
 }
 
 const resetZoom = () => {
-  stageScale.value = 1
-  stageX.value = 0
-  stageY.value = 0
+  // 重置为初始的“适应屏幕并居中”视图，而非把图片丢到左上角
+  fitToScreen()
+}
+
+// 测量画布容器的可用内尺寸（扣除内边距）写入稳定 ref。
+// 只在挂载/容器尺寸变化时调用，不在缩放时调用——以此打破滚轮无限扩张的反馈循环。
+const updateStageSize = () => {
+  const el = canvasContainer.value
+  if (!el) return
+  const cs = getComputedStyle(el)
+  const padX = Number.parseFloat(cs.paddingLeft) + Number.parseFloat(cs.paddingRight)
+  const padY = Number.parseFloat(cs.paddingTop) + Number.parseFloat(cs.paddingBottom)
+  // floor 确保画布永远 ≤ 可用内宽，绝不会反过来撑大容器
+  const w = Math.max(0, Math.floor(el.clientWidth - padX))
+  const h = Math.max(0, Math.floor(el.clientHeight - padY))
+  // 仅在确有变化时更新，避免亚像素抖动触发循环
+  if (w && Math.abs(w - stageWidth.value) >= 1) stageWidth.value = w
+  if (h && Math.abs(h - stageHeight.value) >= 1) stageHeight.value = h
+}
+
+// 按给定缩放把内容（背景图）在可视区内居中
+const centerContent = (scale = stageScale.value) => {
+  if (!canvasWidth.value || !canvasHeight.value) return
+  stageX.value = Math.round((stageWidth.value - canvasWidth.value * scale) / 2)
+  stageY.value = Math.round((stageHeight.value - canvasHeight.value * scale) / 2)
 }
 
 const fitToScreen = () => {
-  if (!canvasContainer.value) return
-
-  const container = canvasContainer.value
-  const containerWidth = container.clientWidth - 40
-  const containerHeight = container.clientHeight - 40
-
-  const scaleX = containerWidth / canvasWidth.value
-  const scaleY = containerHeight / canvasHeight.value
-
-  stageScale.value = Math.min(scaleX, scaleY, 1)
-  stageX.value = 0
-  stageY.value = 0
+  if (!canvasWidth.value || !canvasHeight.value) return
+  const scaleX = stageWidth.value / canvasWidth.value
+  const scaleY = stageHeight.value / canvasHeight.value
+  const scale = Math.min(scaleX, scaleY, 1)
+  stageScale.value = scale
+  centerContent(scale)
 }
 
 const actualSize = () => {
   stageScale.value = 1
-  stageX.value = 0
-  stageY.value = 0
+  centerContent(1) // 100% 并居中（区别于 resetZoom 的归零到左上角）
 }
 
 const centerStage = () => {
-  stageX.value = 0
-  stageY.value = 0
+  centerContent() // 保持当前缩放，仅居中
 }
 
 // 滚轮缩放
@@ -594,34 +614,58 @@ const handleStageMouseDown = (e) => {
   }
 }
 
+// 把 Konva 节点在拖拽/变换后的真实属性回写到响应式 config。
+// 否则 saveState 快照的是拖拽前的旧值，撤销/重做会把人脸还原到错误位置。
+const syncNodeToConfig = (node) => {
+  if (!node) return
+  const id = node.id() || node.attrs?.id
+  const face = faceImages.value.find(f => f.id === id)
+  if (!face) return
+  face.config = {
+    ...face.config,
+    x: node.x(),
+    y: node.y(),
+    scaleX: node.scaleX(),
+    scaleY: node.scaleY(),
+    rotation: node.rotation(),
+  }
+}
+
 const handleFaceClick = (e) => {
   const clickedNode = e.target
   selectedFace.value = clickedNode
   clickedNode.moveToTop()
 
-  // 设置变换器
-  const transformerNode = transformer.value.getStage();
-  transformerNode.nodes([clickedNode]);
+  // 设置变换器（统一用 getNode；getStage 是会返回 Stage 的遗留别名，易出错）
+  if (transformer.value?.getNode()) {
+    const tr = transformer.value.getNode()
+    tr.nodes([clickedNode])
+    tr.moveToTop() // 变换器与人脸同层，moveToTop 后需让手柄保持在最上层
+  }
 
   lastModified.value = new Date()
 }
 
 const handleFaceDragStart = (e) => {
   selectedFace.value = e.target
-  // 确保变换器绑定到当前拖拽的对象
+  // 确保变换器绑定到当前拖拽的对象，并保持在最上层
   if (transformer.value?.getNode()) {
-    transformer.value.getNode().nodes([e.target])
+    const tr = transformer.value.getNode()
+    tr.nodes([e.target])
+    tr.moveToTop()
   }
 }
 
 const handleFaceDragEnd = (e) => {
+  syncNodeToConfig(e.target) // 先回写真实位置，再存历史
   lastModified.value = new Date()
-  saveState() // 添加状态保存
+  saveState()
 }
 
 const handleFaceTransform = (e) => {
+  syncNodeToConfig(e.target) // 先回写真实缩放/旋转，再存历史
   lastModified.value = new Date()
-  saveState() // 添加状态保存
+  saveState()
 }
 
 // 全屏控制
@@ -693,7 +737,7 @@ const handleExport = async (command) => {
     link.download = `composed_image_${eventId}_${Date.now()}.${format}`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
 
     ElMessage.success('图片导出成功');
 
@@ -1087,17 +1131,31 @@ const initStage = async () => {
 // 生命周期
 onMounted(async () => {
   await initStage()
+  await nextTick()
+
+  // 初次测量 + 仅监听窗口缩放。
+  // 不用 ResizeObserver：本组件容器尺寸只由窗口大小/响应式断点决定（无 JS 折叠侧栏），
+  // 而 RO 会在“改尺寸→回调→再改尺寸”之间形成缓慢的自我膨胀循环;window.resize 与画布内容
+  // 完全无关,从根本上杜绝该循环。
+  updateStageSize()
+  window.addEventListener('resize', updateStageSize)
+
+  // 全屏切换会改变容器尺寸，待布局稳定后重新测量
+  const onFullscreenChange = () => {
+    isFullscreen.value = !!document.fullscreenElement
+    requestAnimationFrame(updateStageSize)
+  }
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+
   const cleanupKeyboard = setupKeyboardEvents()
 
   onBeforeUnmount(() => {
     cleanupKeyboard()
+    window.removeEventListener('resize', updateStageSize)
+    document.removeEventListener('fullscreenchange', onFullscreenChange)
   })
 })
 
-// 监听全屏状态变化
-document.addEventListener('fullscreenchange', () => {
-  isFullscreen.value = !!document.fullscreenElement
-})
 </script>
 
 <style scoped>
@@ -1200,7 +1258,7 @@ document.addEventListener('fullscreenchange', () => {
 .canvas-container {
   flex: 1;
   position: relative;
-  overflow: hidden !important; /* 🔥 强制隐藏溢出 */
+  overflow: hidden; /* 裁剪画布；尺寸已在 JS 中正确计算，无需 !important */
   background: linear-gradient(135deg, rgba(255, 245, 250, 0.5) 0%, rgba(255, 236, 242, 0.5) 100%);
   display: flex;
   align-items: center;
@@ -1219,7 +1277,7 @@ document.addEventListener('fullscreenchange', () => {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   background: #ffffff;
-  overflow: hidden !important; /* 🔥 强制隐藏溢出 */
+  overflow: hidden; /* 裁剪画布；尺寸已在 JS 中正确计算，无需 !important */
   transition: all 0.3s ease;
   /* 🔥 填满父容器 */
   width: 100%;
@@ -1231,16 +1289,6 @@ document.addEventListener('fullscreenchange', () => {
 
 .stage-wrapper:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* 🔥 确保 Konva 生成的容器也填满并被限制 */
-.stage-wrapper > div {
-  overflow: hidden !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  box-sizing: border-box;
 }
 
 /* 加载状态 */
