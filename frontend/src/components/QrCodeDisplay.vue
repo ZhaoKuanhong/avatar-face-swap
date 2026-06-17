@@ -94,7 +94,7 @@ const fetchToken = async (id) => {
     const res = await apiClient.get(`/events/${id}/token`);
     const token = res.data?.token;
     if (token) {
-      extraUrl.value = `https://${window.location.hostname}/event?auth_token=${token}`;
+      extraUrl.value = `${window.location.origin}/event?auth_token=${token}`;
     } else {
       extraUrl.value = ''; // Clear QR if no token
       console.error(res.data?.error || '未获取到链接');

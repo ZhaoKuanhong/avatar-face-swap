@@ -15,7 +15,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from "element-plus";
 import { apiClient } from "@/api/axios.js";
-import VueKonva from "vue-konva";
+// 注意:vue-konva(及其依赖 Konva,~270KB)不再全局注册,改为在懒加载的
+// 图片编辑器(PicEdit)内按需安装,使 Konva 移出首屏主包,登录/参与者页面不再下载。
 
 axios.defaults.baseURL = `${import.meta.env.VITE_API_BASE_URL}`;
 
@@ -124,8 +125,6 @@ router.beforeEach(async (to, from, next) => {
 });
 
 const app = createApp(App)
-app.use(VueKonva)
-
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }

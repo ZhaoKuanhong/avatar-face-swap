@@ -852,6 +852,17 @@ const checkProcessStatus = () => {
   statusCheckInterval.value = setInterval(async () => {
     try {
       checkCount++;
+      // 上限保护:每 2 秒一次,150 次约 5 分钟后停止轮询，避免后端卡住时无限请求
+      if (checkCount > 150) {
+        clearInterval(statusCheckInterval.value);
+        uploadLoading.value = false;
+        uploadStatus.value = {
+          type: 'warning',
+          message: '处理超时',
+          description: '识别耗时过长，请稍后刷新页面查看结果'
+        };
+        return;
+      }
       const response = await apiClient.get(`/events/${currentEventId.value}/status`);
 
       if (response.data.status === 'completed') {

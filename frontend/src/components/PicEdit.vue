@@ -238,18 +238,22 @@ import {
     View
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import VueKonva from 'vue-konva'
+
+// 按需安装 vue-konva:仅当进入(懒加载的)编辑器时才把 Konva 拉进来并注册全局组件,
+// 使 Konva(~270KB)移出首屏主包。setup 同步执行,组件在本组件渲染前即注册完毕。
+const _app = getCurrentInstance()?.appContext.app
+if (_app && !_app.__vueKonvaInstalled) {
+  _app.use(VueKonva)
+  _app.__vueKonvaInstalled = true
+}
 
 const route = useRoute()
+// eventId 来自路由参数(list/:event_id/export);此前还声明过一个 required 的 eventId prop,
+// 但路由并不传 prop,导致每次进编辑器都报 "Missing required prop"——已移除该无用声明。
 const eventId = route.params.event_id
-
-defineProps({
-  eventId: {
-    type: String,
-    required: true
-  }
-})
 
 // 基础状态
 const canvasContainer = ref(null)
@@ -505,12 +509,15 @@ const redo = () => {
 }
 
 // 图片加载辅助函数
+// 加载完成后立即释放 blob URL：Image 已持有解码数据，URL 不再需要，
+// 否则背景图 + 每张人脸/头像的 blob 都会泄漏(每次进编辑器累积)。
 const loadImage = (src) => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = reject
+    const cleanup = () => { if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src) }
+    img.onload = () => { cleanup(); resolve(img) }
+    img.onerror = (e) => { cleanup(); reject(e) }
     img.src = src
   })
 }
@@ -1132,6 +1139,14 @@ const initStage = async () => {
 }
 
 // 生命周期
+let cleanupKeyboard = null
+
+// 全屏切换会改变容器尺寸，待布局稳定后重新测量
+const onFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement
+  requestAnimationFrame(updateStageSize)
+}
+
 onMounted(async () => {
   await initStage()
   await nextTick()
@@ -1142,21 +1157,16 @@ onMounted(async () => {
   // 完全无关,从根本上杜绝该循环。
   updateStageSize()
   window.addEventListener('resize', updateStageSize)
-
-  // 全屏切换会改变容器尺寸，待布局稳定后重新测量
-  const onFullscreenChange = () => {
-    isFullscreen.value = !!document.fullscreenElement
-    requestAnimationFrame(updateStageSize)
-  }
   document.addEventListener('fullscreenchange', onFullscreenChange)
+  cleanupKeyboard = setupKeyboardEvents()
+})
 
-  const cleanupKeyboard = setupKeyboardEvents()
-
-  onBeforeUnmount(() => {
-    cleanupKeyboard()
-    window.removeEventListener('resize', updateStageSize)
-    document.removeEventListener('fullscreenchange', onFullscreenChange)
-  })
+// 必须同步注册:放在 async onMounted 内 await 之后会丢失组件实例上下文而失效,
+// 导致 resize/fullscreen/keydown 监听器在离开编辑器时无法移除(泄漏)。
+onBeforeUnmount(() => {
+  cleanupKeyboard?.()
+  window.removeEventListener('resize', updateStageSize)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 
 </script>

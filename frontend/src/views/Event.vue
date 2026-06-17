@@ -61,9 +61,11 @@
           <div v-show="currentStep === 1" class="step-panel">
             <h3 class="section-title">输入 QQ 号获取头像</h3>
             <div class="qq-input-row">
-              <el-input 
-                type="number" 
-                v-model="qqNumber" 
+              <el-input
+                type="tel"
+                inputmode="numeric"
+                maxlength="11"
+                v-model="qqNumber"
                 placeholder="输入你的 QQ 号"
                 size="large"
                 class="qq-input"
